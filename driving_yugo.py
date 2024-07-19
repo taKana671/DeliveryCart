@@ -17,7 +17,7 @@ class Game(ShowBase):
 
     def __init__(self):
         super().__init__()
-        self.set_background_color(LColor(0.1, 0.1, 0.8, 1))
+        # self.set_background_color(LColor(0.1, 0.1, 0.8, 1))
         self.set_frame_rate_meter(True)
 
         self.camera.set_pos(0, -100, 100)
@@ -98,29 +98,35 @@ class Game(ShowBase):
         self.vehicle = BulletVehicle(self.world, np.node())
         self.vehicle.set_coordinate_system(ZUp)
         self.world.attach_vehicle(self.vehicle)
-
         self.yugo_np = self.loader.load_model('models/yugo/yugo.egg')
         self.yugo_np.reparent_to(np)
 
+        # *************************************************
         # right front wheel
         np = self.loader.load_model('models/yugo/yugotireR.egg')
         np.reparent_to(self.world_np)
         self.add_wheel(Point3(0.7, 1.05, 0.3), True, np)
+        # import pdb; pdb.set_trace()
 
+        # *************************************************
         # left front wheel
         np = self.loader.load_model('models/yugo/yugotireL.egg')
         np.reparent_to(self.world_np)
         self.add_wheel(Point3(-0.7, 1.05, 0.3), True, np)
 
+        # *************************************************
         # right rear wheel
         np = self.loader.load_model('models/yugo/yugotireR.egg')
         np.reparent_to(self.world_np)
         self.add_wheel(Point3(0.7, -1.05, 0.3), False, np)
 
+        # *************************************************
         # left rear wheel
         np = self.loader.load_model('models/yugo/yugotireL.egg')
         np.reparent_to(self.world_np)
         self.add_wheel(Point3(-0.7, -1.05, 0.3), False, np)
+
+        # *************************************************
 
         self.steering = 0.0             # degree
         self.steering_clamp = 45.0      # degree
@@ -168,12 +174,13 @@ class Game(ShowBase):
         wheel.set_wheel_axle_cs(Vec3(1, 0, 0))
         wheel.set_wheel_radius(0.25)
         wheel.set_max_suspension_travel_cm(40.0)
-
+        
         wheel.set_suspension_stiffness(40.0)
         wheel.set_wheels_damping_relaxation(2.3)
         wheel.set_wheels_damping_compression(4.4)
         wheel.set_friction_slip(100.0)
         wheel.set_roll_influence(0.1)
+        # import pdb; pdb.set_trace()
 
     def update(self, task):
         dt = globalClock.getDt()

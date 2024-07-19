@@ -112,13 +112,14 @@ class Game(ShowBase):
         self.world.attach_vehicle(self.vehicle)
         # self.nsx_np = self.loader.load_model('models/carnsx/carnsx.egg')
         self.nsx_np.reparent_to(np)
-        self.nsx_np.set_h(180)
+        # self.nsx_np.set_h(180)
 
         # body = self.nsx_np.get_children()[1]
         parts = self.nsx_np.get_children()
 
         body_parts = parts[1].get_children()
         self.rf_wheel = body_parts[5]
+        # import pdb; pdb.set_trace()
         # self.lf_wheel = body_parts[-1] not this
 
         # ************************************************
@@ -152,11 +153,26 @@ class Game(ShowBase):
         # self.add_wheel(Point3(0.7, 1.05, 0.3), True, np)
 
         # np = body.get_children()[5]
-        np = parts[4]
-        # self.add_wheel(Point3(-1.01183, -2.72002, 0), True, np)
-        # ★self.add_wheel(Point3(0.981367, -2.72002, 0), True, np)
-        self.add_wheel(Point3(0.7, -1.05, 0.7), True, np)
+        # np = parts[4]
+        np = body_parts[5]
+        # import pdb; pdb.set_trace()
+        np.remove_node()
+        np = self.loader.load_model('models/carnsx/tire_fl.egg')
+        # pivot = np.get_bounds().get_center()
+        # end, tip = np.get_tight_bounds()
+        # pivot = (tip - end) / 2
+        # new_np = self.world_np.attach_new_node('center')
+        # new_np.set_pos(pivot)
+        # np.reparent_to(new_np)
 
+        # import pdb; pdb.set_trace()
+        # np = self.loader.load_model('models/yugo/yugotireR.egg')
+        np.reparent_to(self.world_np)
+        # self.add_wheel(Point3(-1., 3, 0.8), True, np)
+        # self.add_wheel(Point3(0, -2.72002, 0), True, np)
+        self.add_wheel(Point3(0.7, -1.05, 0.7), True, np)
+        # self.add_wheel(Point3(-1.01183, -2.72002, 0.7), True, np)
+   
         # *************************************************
 
         # left front wheel
@@ -165,7 +181,9 @@ class Game(ShowBase):
         # self.add_wheel(Point3(-0.7, 1.05, 0.3), True, np)
 
         # np = body.get_children()[7]
-        np = parts[3]
+        # np = parts[3]
+        np = body_parts[7]
+        # np.reparent_to(self.world_np)
         # self.add_wheel(Point3(0.981367, -2.72002, 0), True, np)
         # ★self.add_wheel(Point3(-1.01183, -2.72002, 0), True, np)
         self.add_wheel(Point3(-0.7, -1.05, 0.7), True, np)
@@ -179,6 +197,8 @@ class Game(ShowBase):
 
         # np = body.get_children()[5]
         np = parts[4]
+        # np = body_parts[-2]
+        np.reparent_to(self.world_np)
         # self.add_wheel(Point3(-1.01183, 2.72002, 0), False, np)
         # ★self.add_wheel(Point3(0.981367, 2.72002, 0), False, np)
         self.add_wheel(Point3(0.7, 1.8, 0.7), False, np)
@@ -192,6 +212,8 @@ class Game(ShowBase):
 
         # np = body.get_children()[7]
         np = parts[3]
+        # np = body_parts[-1]
+        np.reparent_to(self.world_np)
         # self.add_wheel(Point3(0.981367, 2.72002, 0), False, np)
         # ★self.add_wheel(Point3(-1.01183, 2.72002, 0), False, np)
         self.add_wheel(Point3(-0.7, 1.8, 0.7), False, np)
@@ -225,7 +247,8 @@ class Game(ShowBase):
             self.steering -= dt * self.steering_increment
             self.steering = max(self.steering, -self.steering_clamp)
 
-            self.rf_wheel.set_h(self.nsx_np, 45)
+            # self.rf_wheel.set_h(45)
+            # import pdb; pdb.set_trace()
 
         # Apply steering to front wheels
         self.vehicle.set_steering_value(self.steering, 0)
