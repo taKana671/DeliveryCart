@@ -2,38 +2,43 @@ from panda3d.bullet import BulletRigidBodyNode
 from panda3d.bullet import BulletPlaneShape, BulletHeightfieldShape, ZUp
 from panda3d.core import NodePath, PandaNode, CardMaker, BitMask32, Vec3, Point3
 from panda3d.core import Filename, PNMImage
-# from panda3d.core import GeoMipTerrains
+from panda3d.core import GeoMipTerrain
 
 from parking_lot import ParkingLot
 
 
-# class Terrain(NodePath):
+class Terrain(NodePath):
 
-#     def __init__(self):
-#         super().__init__(BulletRigidBodyNode('terrain'))
-#         self.height = 10
-#         self.set_pos(Point3(0, 0, 0))
-#         self.node().set_mass(0)
-#         self.set_collide_mask(BitMask32.bit(1))
+    def __init__(self):
+        super().__init__(BulletRigidBodyNode('terrain'))
+        self.height = 30
+        self.set_pos(Point3(0, 0, 0))
+        self.node().set_mass(0)
+        # self.set_collide_mask(BitMask32.bit(1))
+        self.set_collide_mask(BitMask32.all_on())
 
-#         img = PNMImage(Filename('terrains/heightfield7.png'))
-#         shape = BulletHeightfieldShape(img, self.height)
-#         shape.set_use_diamond_subdivision(True)
-#         self.node().add_shape(shape)
+        img = PNMImage(Filename('terrains/sample8.png'))
+        shape = BulletHeightfieldShape(img, self.height, ZUp)
+        shape.set_use_diamond_subdivision(True)
+        self.node().add_shape(shape)
 
-#         self.terrain = GeoMipTerrains('geomip_terrain')
-#         self.terrain.set_heightfield('terrains/heightfield7.png')
-#         self.terrain.set_block_size(8)
-#         self.terrain.set_min_level(2)
-#         self.terrain.set_focal_point(base.camera)
+        self.terrain = GeoMipTerrain('geomip_terrain')
+        self.terrain.set_heightfield('terrains/sample8.png')
+        self.terrain.set_border_stitching(True)
+        self.terrain.set_block_size(8)
+        # self.terrain.set_block_size(32)
+        self.terrain.set_min_level(2)
+        self.terrain.set_focal_point(base.camera)
 
-#         self.root = self.terrain.get_root()
-#         self.root.set_scale(Vec3(1, 1, self.height))
-#         # self.root.set_pos()
-#         self.terrain.generate()
-#         self.root.reparent_to(self)
+        pos = Point3(-256 / 2, -256 / 2, -(self.height / 2))
+        self.root = self.terrain.get_root()
+        self.root.set_scale(Vec3(1, 1, self.height))
+        self.root.set_pos(pos)
+        self.terrain.generate()
+        self.root.reparent_to(self)
 
-        
+        tex = base.loader.load_texture('textures/grass_02.png')
+        self.root.set_texture(tex)
 
 
 
@@ -75,4 +80,7 @@ class Scene(NodePath):
         # ground.reparent_to(self)
         # self.reparent_to(base.render)
         # world.attach(ground.node())
-        self.parking_lot = ParkingLot(self.world)
+        # self.parking_lot = ParkingLot(self.world)
+        self.terrain = Terrain()
+        self.terrain.reparent_to(self)
+        self.world.attach(self.terrain.node())

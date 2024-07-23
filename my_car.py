@@ -1,7 +1,7 @@
-from panda3d.bullet import BulletBoxShape, ZUp
+from panda3d.bullet import BulletBoxShape, ZUp, BulletConvexHullShape
 from panda3d.bullet import BulletRigidBodyNode, BulletVehicle
 from panda3d.core import NodePath
-from panda3d.core import Vec3, Point3, TransformState, BitMask32
+from panda3d.core import Vec3, Point3, TransformState, BitMask32, LColor
 from direct.showbase.InputStateGlobal import inputState
 
 
@@ -10,18 +10,19 @@ from create_geomnode import Cube, Cylinder
 
 class Block(NodePath):
 
-    def __init__(self, name, pos, scale):
+    def __init__(self, name, pos, scale, mass=0, need_shape=False):
         super().__init__(BulletRigidBodyNode(name))
         cube = Cube()
         self.model = self.attach_new_node(cube.node())
 
         self.set_pos(pos)
         self.set_scale(scale)
-        self.set_collide_mask(BitMask32.bit(1))
+        self.node().set_mass(mass)
 
-        end, tip = self.model.get_tight_bounds()
-        self.node().add_shape(BulletBoxShape((tip - end) / 2))
-        self.node().set_mass(0)
+        if need_shape:
+            self.set_collide_mask(BitMask32.bit(1))
+            end, tip = self.model.get_tight_bounds()
+            self.node().add_shape(BulletBoxShape((tip - end) / 2))
 
 
 class Cart(NodePath):
@@ -60,11 +61,13 @@ class Cart(NodePath):
         # shape = BulletBoxShape(Vec3(0.6, 1.4, 0.5))
         # ts = TransformState.make_pos(Point3(0, 0, 0.75))
         # self.node().add_shape(shape, ts)
-        self.set_pos(Point3(0, -10, 1))
+        # self.set_pos(Point3(0, -10, 1))
+        self.set_pos(Point3(0, 0, 20))
         self.node().set_mass(800)
         self.node().set_deactivation_enabled(False)
         # np.set_collide_mask(BitMask32.bit(1))
         self.world.attach(self.node())
+        # self.set_collide_mask(BitMask32.bit(1))
 
 
         # wheel
@@ -87,12 +90,12 @@ class Cart(NodePath):
         for i, (pos, front) in enumerate(wheels):
             tex = base.loader.loadTexture('textures/metalboard.jpg')
             model = Cylinder(radius=0.5, segs_c=30, height=0.25)
-            
+
             model.set_texture(tex)
             model.set_hpr(Vec3(90, 90, 0))
             # model.set_pos(Point3(0.7, 1.05, 1.5))
             # np = base.loader.load_model(path)
-            model.reparent_to(self)
+            model.reparent_to(base.render)
             pivot = model.get_bounds().get_center()
             new_np = self.attach_new_node(f'new_nd{i}')
             new_np.set_pos(pivot)
@@ -104,6 +107,12 @@ class Cart(NodePath):
         self.steering = 0.0              # degree
         self.steering_clamp = 45.0       # degree
         self.steering_increment = 120.0  # degree per second
+
+        block = Block('test_block', Point3(0, -10, 2), Vec3(1, 1, 1), mass=1, need_shape=True)
+        block.set_color(LColor(1, 0, 0, 1))
+        block.reparent_to(base.render)
+        self.world.attach(block.node())
+
 
     def add_wheel(self, pos, front, np):
         wheel = self.vehicle.create_wheel()

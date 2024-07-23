@@ -2,6 +2,7 @@ import sys
 
 from panda3d.bullet import BulletWorld, BulletDebugNode
 from panda3d.core import Vec3, Point3, NodePath
+from panda3d.core import load_prc_file_data
 
 from direct.showbase.ShowBase import ShowBase
 from direct.showbase.ShowBaseGlobal import globalClock
@@ -9,6 +10,16 @@ from direct.showbase.ShowBaseGlobal import globalClock
 from car import Car
 from my_car import Cart
 from scene import Scene
+
+
+load_prc_file_data("", """
+    textures-power-2 none
+    gl-coordinate-system default
+    window-title Panda3D Practice Parking
+    filled-wireframe-apply-shader true
+    stm-max-views 8
+    stm-max-chunk-count 2048""")
+
 
 
 class PracticeParking(ShowBase):
@@ -24,7 +35,8 @@ class PracticeParking(ShowBase):
         self.world.set_debug_node(self.debug.node())
         self.debug.show()
         self.scene = Scene(self.world)
-        # self.car = Car(self.world)
+        self.scene.reparent_to(self.render)
+        self.car = Car(self.world)
         self.car = Cart(self.world)
         self.car.reparent_to(self.render)
 
@@ -34,8 +46,8 @@ class PracticeParking(ShowBase):
 
         self.camera.set_pos(self.car.get_pos() + Vec3(0, -10, 3))
         # self.camera.look_at(0, 0, 0)
-        # self.camera.set_pos(0, -10, 3)
-        # self.camera.reparent_to(self.car)
+        # self.camera.set_pos(0, 0, 10)
+        self.camera.reparent_to(self.car)
         self.camera.look_at(self.floater)
 
         self.accept('escape', sys.exit)
@@ -51,7 +63,7 @@ class PracticeParking(ShowBase):
     def update(self, task):
         dt = globalClock.get_dt()
         # self.process_input(dt)
-        self.car.control(dt)
+        # self.car.control(dt)
 
         self.world.do_physics(dt)
         return task.cont
