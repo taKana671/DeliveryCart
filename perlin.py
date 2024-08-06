@@ -1,89 +1,69 @@
-from PIL import Image
-
 from math import floor
-# from itertools import product
+
 import numpy as np
 import cv2
-# import matplotlib.pyplot as plt
-
-
-def lerp(a, b, t):
-    return a + (b - a) * t
 
 
 class Perlin():
-    slopes = 2 * np.random.random((256, 2)) - 1
-    rand_index = np.zeros(512, dtype=np.int8)
-    for i, rand in enumerate(np.random.permutation(256)):
-        rand_index[i] = rand
-        rand_index[i + 256] = rand
 
-    @staticmethod
-    def hash(i, j):
-        # 前提条件: 0 <= i, j <= 256
-        return Perlin.rand_index[Perlin.rand_index[i] + j]
+    def __init__(self, size=256):
+        self.size = size
+        self._hash = np.arange(size, dtype=int) % size
+        np.random.shuffle(self._hash)
+        self._hash = self._hash.astype(np.int8)
+        self._grad = 2 * np.random.random((128, 2)) - 1
 
-    @staticmethod
-    def fade(x):
-        return 6 * x**5 - 15 * x ** 4 + 10 * x**3
+    def create_noise(self, grid):
+        arr = np.array([val for val in self.noise(grid)])
+        arr = arr.reshape(self.size, self.size)
 
-    @staticmethod
-    def weight(ix, iy, dx, dy):
-        # 格子点(ix, iy)に対する(ix + dx, iy + dy)の重みを求める
+        temp = np.abs(arr)
+        temp = temp * 65535
+        img = temp.astype(np.uint16)
+
+        cv2.imwrite('mysample2.png', img)
+
+
+        temp2 = (arr * -100).astype(np.uint8)
+        cv2.imwrite('mysample1.png', temp2)
+
+    def hash(self, i, j):
+        idx = self._hash[i] + j
+        return self._hash[idx]
+
+    def fade(self, x):
+        return 6 * x**5 - 15 * x**4 + 10 * x**3
+
+    def weight(self, ix, iy, dx, dy):
         ix %= 256
         iy %= 256
-        ax, ay = Perlin.slopes[Perlin.hash(ix, iy)]
+        idx = self.hash(ix, iy)
+        ax, ay = self._grad[idx]
         return ax * dx + ay * dy
 
-    @staticmethod
-    def noise(x, y):
-        ix = floor(x)
-        iy = floor(y)
-        dx = x - floor(x)
-        dy = y - floor(y)
+    def lerp(self, a, b, t):
+        return a + (b - a) * t
 
-        # 重みを求める
-        w00 = Perlin.weight(ix, iy,   dx  , dy)
-        w10 = Perlin.weight(ix+1,   iy, dx-1,   dy)
-        w01 = Perlin.weight(ix,   iy+1,   dx, dy-1)
-        w11 = Perlin.weight(ix+1, iy+1, dx-1, dy-1)
+    def noise(self, grid):
+        for y in np.linspace(0, grid, self.size):
+            for x in np.linspace(0, grid, self.size):
+                ix = floor(x)
+                iy = floor(y)
+                dx = x - floor(x)
+                dy = y - floor(y)
 
-        # 小数部分を変換する
-        wx = Perlin.fade(dx)
-        wy = Perlin.fade(dy)
+                w00 = self.weight(ix, iy, dx, dy)
+                w10 = self.weight(ix + 1, iy, dx - 1, dy)
+                w01 = self.weight(ix, iy + 1, dx, dy - 1)
+                w11 = self.weight(ix + 1, iy + 1, dx - 1, dy - 1)
 
-        # 線形補間して返す
-        y0 = lerp(w00, w10, wx)
-        y1 = lerp(w01, w11, wx)
-        return (lerp(y0, y1, wy) - 1) / 2 # 値域を[0, 1]に戻す
+                wx = self.fade(dx)
+                wy = self.fade(dy)
 
-
-# 画像の大きさは512x512
-width, height = 257, 257
-canvas = np.zeros((width, height))
-# 格子点を16個配置する
-# w = 16  # 2のべき乗
-w = 8
+                y0 = self.lerp(w00, w10, wx)
+                y1 = self.lerp(w01, w11, wx)
+                yield (self.lerp(y0, y1, wy) - 1) / 2
 
 
-canvas = np.array([[Perlin.noise(x, y)
-                    for x in np.linspace(0, w, width)]
-                   for y in np.linspace(0, w, height)])
-
-temp = np.abs(canvas)
-temp = temp * 65535
-img = temp.astype(np.uint16)
-
-cv2.imwrite('sample8.png', img)
-# img = Image.fromarray(temp.astype(np.uint16))
-# img.save('sample5.png')
-
-
-# import pdb; pdb.set_trace()
-# img = Image.fromarray((canvas * -100).astype(np.uint8)
-# img.save('sample.jpg')
-
-
-# # matplotlibを使って表示
-# fig, ax = plt.subplots(figsize=(10, 10))
-# ax.imshow(canvas, cmap=plt.cm.binary)
+if __name__ == '__main__':
+    Perlin(size=257).create_noise(4)
