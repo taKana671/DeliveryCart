@@ -112,7 +112,7 @@ class PracticeParking(ShowBase):
                 if globalClock.get_frame_time() - self.dragging_start_time >= 0.2:
                     self.rotate_camera(mouse_pos, dt)
 
-        self.scene.wave(task.time)
+        self.scene.water_surface.wave(task.time)
 
         self.world.do_physics(dt)
         return task.cont

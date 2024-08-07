@@ -14,24 +14,24 @@ from panda3d.core import Geom, GeomTriangles, GeomNode, GeomVertexData
 
 class Terrain(NodePath):
 
-    def __init__(self, height=30):
+    def __init__(self, heightmap_path, height=100):
         super().__init__(BulletRigidBodyNode('terrain'))
         self.height = height
         self.set_pos(Point3(0, 0, 0))
         self.node().set_mass(0)
         self.set_collide_mask(BitMask32.bit(1))
-        # self.set_collide_mask(BitMask32.all_on())
+        self.create_terrain(heightmap_path)
 
-        img = PNMImage(Filename('terrains/city_3.png'))
+    def create_terrain(self, heightmap_path):
+        img = PNMImage(Filename(heightmap_path))
         shape = BulletHeightfieldShape(img, self.height, ZUp)
         shape.set_use_diamond_subdivision(True)
         self.node().add_shape(shape)
 
         self.terrain = GeoMipTerrain('geomip_terrain')
-        self.terrain.set_heightfield('terrains/city_3.png')
+        self.terrain.set_heightfield(heightmap_path)
         self.terrain.set_border_stitching(True)
         self.terrain.set_block_size(8)
-        # self.terrain.set_block_size(32)
         self.terrain.set_min_level(2)
         self.terrain.set_focal_point(base.camera)
 
@@ -40,38 +40,26 @@ class Terrain(NodePath):
         y = (size_y - 1) / 2
 
         pos = Point3(-x, -y, -(self.height / 2))
+        scale = Vec3(1, 1, self.height)
         self.root = self.terrain.get_root()
-        self.root.set_scale(Vec3(1, 1, self.height))
+        self.root.set_scale(scale)
         self.root.set_pos(pos)
         self.terrain.generate()
         self.root.reparent_to(self)
 
-        # **********************************************************
-        # self.root.set_shader_input('HeightMap', base.loader.loadTexture('terrains/test1.png'))
-        # ***********************************************************
-
         shader = Shader.load(Shader.SL_GLSL, 'shaders/terrain_v.glsl', 'shaders/terrain_f.glsl')
         self.root.set_shader(shader)
 
-        # texes = [
-        #     ('concrete.jpg', 30),
-        #     ('grass_02.png', 10),
-        #     ('grass_03.jpg', 10),
-        #     ('grass_04.jpg', 10)
-        # ]
-
-        texes = [
-            ('grass_03.jpg', 30),
-            ('grass_02.png', 30),
+        tex_files = [
+            ('stones_01.jpg', 20),
             ('grass_02.png', 10),
-            ('grass_01.jpg', 30)
         ]
 
-        for i, (name, tex_scale) in enumerate(texes):
+        for i, (file_name, tex_scale) in enumerate(tex_files):
             ts = TextureStage(f'ts{i}')
             ts.set_sort(i)
             self.root.set_shader_input(f'tex_ScaleFactor{i}', tex_scale)
-            tex = base.loader.load_texture(f'textures/{name}')
+            tex = base.loader.load_texture(f'textures/{file_name}')
             self.root.set_texture(ts, tex)
 
 
@@ -184,10 +172,11 @@ class Scene(NodePath):
         self.world = world
         self.reparent_to(base.render)
 
-        self.terrain = Terrain()
+        self.terrain = Terrain('terrains/mysample3.png')
         self.terrain.reparent_to(self)
         self.world.attach(self.terrain.node())
 
         self.water_surface = WaterSurface()
         self.water_surface.reparent_to(self)
+        self.water_surface.set_pos(0, 0, 0)
         self.world.attach(self.water_surface.node())
