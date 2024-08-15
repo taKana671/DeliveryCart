@@ -7,8 +7,8 @@ from panda3d.core import load_prc_file_data
 from direct.showbase.ShowBase import ShowBase
 from direct.showbase.ShowBaseGlobal import globalClock
 
-from car import Car
-from my_car import Cart
+# from car import Car
+# from cart import Cart
 from scene import Scene
 
 

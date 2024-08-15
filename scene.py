@@ -16,6 +16,7 @@ from panda3d.core import Geom, GeomTriangles, GeomNode, GeomVertexData
 
 from shapes import CylinderModel, PlaneModel
 from lights import BasicAmbientLight, BasicDayLight
+from cart import BulletCart
 
 
 class Terrain(NodePath):
@@ -171,8 +172,10 @@ class Road(NodePath):
         model.set_pos(pos)
         model.reparent_to(self)
 
-        shape = BulletConvexHullShape()
-        shape.add_geom(model.node().get_geom(0))
+        # If using BulletConvexHullShape, hollow is lost because of the shape.
+        mesh = BulletTriangleMesh()
+        mesh.add_geom(model.node().get_geom(0))
+        shape = BulletTriangleMeshShape(mesh, dynamic=False)
         self.node().add_shape(shape, TransformState.make_pos(pos))
 
 
@@ -200,9 +203,17 @@ class Scene(NodePath):
         self.world.attach(self.road.node())
 
         # *****shape test*****************
+        cart = BulletCart()
+        cart.reparent_to(self)
+        self.world.attach(cart.node())
+        cart.set_pos(-100, -100, 80)
+        base.camera.look_at(cart)
+        cart.hprInterval(15, Vec3(360)).loop()
+
         # test_np = NodePath(BulletRigidBodyNode('test'))
         # test_np.reparent_to(self)
-        # model = CylinderModel(height=3, inner_radius=0, slice_angle_deg=0, invert_inner_mantle=True).create()
+        # # model = CylinderModel(height=3, inner_radius=5, slice_angle_deg=60, invert_inner_mantle=True).create()
+        # model = Cube(width=5, depth=5, height=5, segs_d=0).create()
         # model.reparent_to(test_np)
 
         # pos = Point3(0, 0, 15)
@@ -210,8 +221,13 @@ class Scene(NodePath):
         # model.set_pos(pos)
         # # model.set_scale(scale)
 
-        # shape = BulletConvexHullShape()
-        # shape.add_geom(model.node().get_geom(0))
+        # # shape = BulletConvexHullShape()
+        # # shape.add_geom(model.node().get_geom(0))
+        # # test_np.node().add_shape(shape, TransformState.make_pos(pos))
+
+        # mesh = BulletTriangleMesh()
+        # mesh.add_geom(model.node().get_geom(0))
+        # shape = BulletTriangleMeshShape(mesh, dynamic=False)
         # test_np.node().add_shape(shape, TransformState.make_pos(pos))
 
         # test_np.set_texture(base.loader.load_texture('textures/metalboard.jpg'))
