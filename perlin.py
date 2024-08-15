@@ -9,23 +9,14 @@ class Perlin():
     def __init__(self, size=256):
         self.size = size
         self._hash = np.arange(size, dtype=int) % size
-        np.random.shuffle(self._hash)
         self._hash = self._hash.astype(np.int8)
         self._grad = 2 * np.random.random((128, 2)) - 1
 
     def create_noise(self, grid):
+        np.random.shuffle(self._hash)
         arr = np.array([val for val in self.noise(grid)])
         arr = arr.reshape(self.size, self.size)
-
-        temp = np.abs(arr)
-        temp = temp * 65535
-        img = temp.astype(np.uint16)
-
-        cv2.imwrite('mysample2.png', img)
-
-
-        temp2 = (arr * -100).astype(np.uint8)
-        cv2.imwrite('mysample1.png', temp2)
+        return arr
 
     def hash(self, i, j):
         idx = self._hash[i] + j
@@ -65,5 +56,21 @@ class Perlin():
                 yield (self.lerp(y0, y1, wy) - 1) / 2
 
 
+def create_8_bit_img(arr, path):
+    img = np.abs(arr)
+    img *= 255
+    img = img.astype(np.uint8)
+    cv2.imwrite(path, img)
+
+
+def create_16_bit_img(arr, path):
+    img = np.abs(arr)
+    img *= 65535
+    img = img.astype(np.uint16)
+    cv2.imwrite(path, img)
+
+
 if __name__ == '__main__':
-    Perlin(size=257).create_noise(4)
+    perlin = Perlin(size=257)
+    arr = perlin.create_noise(4)
+    create_8_bit_img(arr, 'noise_sample.png')

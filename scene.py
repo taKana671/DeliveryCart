@@ -2,14 +2,20 @@ import math
 import array
 
 from panda3d.bullet import BulletRigidBodyNode
+from panda3d.bullet import BulletCylinderShape
 from panda3d.bullet import BulletTriangleMeshShape, BulletTriangleMesh, BulletHeightfieldShape, ZUp
+from panda3d.bullet import BulletConvexHullShape
 from panda3d.core import NodePath, PandaNode, BitMask32, Vec3, Point3
+from panda3d.core import Mat4
 from panda3d.core import Filename, PNMImage
 from panda3d.core import GeoMipTerrain
-from panda3d.core import Shader, TextureStage
+from panda3d.core import Shader, TextureStage, TransformState
 from panda3d.core import TransparencyAttrib
 from panda3d.core import GeomVertexArrayFormat, GeomVertexFormat
 from panda3d.core import Geom, GeomTriangles, GeomNode, GeomVertexData
+
+from shapes import CylinderModel, PlaneModel
+from lights import BasicAmbientLight, BasicDayLight
 
 
 class Terrain(NodePath):
@@ -64,13 +70,12 @@ class Terrain(NodePath):
 
 
 class WaterSurface(NodePath):
-    """Create a plane geom node.
+    """Create water surface.
         Arges:
             w (int): width; dimension along the x-axis; cannot be negative
             d (int): depth; dimension along the y-axis; cannot be negative
             segs_w (int) the number of subdivisions in width
             segs_d (int) the number of subdivisions in depth
-            wave_h (int) the height of wave;
     """
 
     def __init__(self, w=256, d=256, segs_w=16, segs_d=16):
@@ -80,76 +85,16 @@ class WaterSurface(NodePath):
         self.segs_w = segs_w
         self.segs_d = segs_d
 
-        nd = self.make_node()
-        self.model = self.attach_new_node(nd)
-        self.model.set_two_sided(True)
-
+        self.model = PlaneModel(w, d, segs_w, segs_d).create()
         self.model.set_transparency(TransparencyAttrib.MAlpha)
         self.model.set_texture(base.loader.loadTexture('textures/water.png'))
         self.model.set_pos(0, 0, 0)
+        self.model.reparent_to(self)
 
         mesh = BulletTriangleMesh()
-        mesh.add_geom(nd.get_geom(0))
+        mesh.add_geom(self.model.node().get_geom(0))
         shape = BulletTriangleMeshShape(mesh, dynamic=False)
         self.node().add_shape(shape)
-
-    def make_node(self):
-        start_w = self.w * -0.5
-        start_d = self.d * -0.5
-
-        offset_u = -start_w
-        offset_v = -start_d
-
-        arr_format = GeomVertexArrayFormat()
-        arr_format.add_column('vertex', 3, Geom.NT_float32, Geom.C_point)
-        arr_format.add_column('color', 4, Geom.NT_float32, Geom.C_color)
-        arr_format.add_column('normal', 3, Geom.NT_float32, Geom.C_color)
-        arr_format.add_column('texcoord', 2, Geom.NT_float32, Geom.C_texcoord)
-        fmt = GeomVertexFormat.register_format(arr_format)
-
-        vdata_arr = array.array('f', [])  # double
-        prim_arr = array.array('H', [])   # unsigned short (int)
-
-        color = (1, 1, 1, 1)
-        normal = Vec3(0, 0, 1)
-
-        for i in range(self.segs_w + 1):
-            x = start_w + i / self.segs_w * self.w
-            u = (x + offset_u) / self.w
-
-            for j in range(self.segs_d + 1):
-                y = start_d + j / self.segs_d * self.d
-                v = (y + offset_v) / self.d
-
-                vdata_arr.extend(Point3(x, y, 0))
-                vdata_arr.extend(color)
-                vdata_arr.extend(normal)
-                vdata_arr.extend((u, v))
-
-            if i > 0:
-                for k in range(self.segs_d):
-                    idx = i * (self.segs_d + 1) + k
-                    prim_arr.extend((idx, idx - self.segs_d - 1, idx - self.segs_d))
-                    prim_arr.extend((idx, idx - self.segs_d, idx + 1))
-
-        vertex_cnt = (self.segs_w + 1) * (self.segs_d + 1)
-        vdata = GeomVertexData('vdata', fmt, Geom.UH_static)
-        vdata.unclean_set_num_rows(vertex_cnt)
-        vdata_mem = memoryview(vdata.modify_array(0)).cast('B').cast('f')
-        vdata_mem[:] = vdata_arr
-
-        prim = GeomTriangles(Geom.UH_static)
-        prim_vertices = prim.modify_vertices()
-        prim_vertices.unclean_set_num_rows(len(prim_arr))
-        prim_mem = memoryview(prim_vertices).cast('B').cast('H')
-        prim_mem[:] = prim_arr
-
-        prim.close_primitive()
-        geom = Geom(vdata)
-        geom.addPrimitive(prim)
-        node = GeomNode('geom_node')
-        node.add_geom(geom)
-        return node
 
     def wave(self, time, wave_h=3.0):
         geom_node = self.model.node()
@@ -165,12 +110,81 @@ class WaterSurface(NodePath):
             vdata_mem[i + 2] = z
 
 
+class Road(NodePath):
+
+    def __init__(self, segs_x=4):
+        super().__init__(BulletRigidBodyNode('cylinder'))
+        self.create_columns()
+        self.create_road(segs_x)
+        self.set_texture(base.loader.load_texture('textures/iron.jpg'))
+
+    def create_columns(self):
+        model_maker = CylinderModel(radius=4, height=20, segs_a=10, segs_cap=4)
+        for x in [-124, 124]:
+            pos = Point3(x, 0, 1)
+            model = model_maker.create()
+            model.set_pos(pos)
+            model.reparent_to(self)
+
+            shape = BulletConvexHullShape()
+            shape.add_geom(model.node().get_geom(0))
+            self.node().add_shape(shape, TransformState.make_pos(pos))
+
+    def create_road(self, segs_x):
+        seg = 124 * 2 / segs_x
+        radius = seg / 2 + 3
+        inner_radius = radius - 6
+
+        model_maker = CylinderModel(
+            radius=radius,
+            inner_radius=inner_radius,
+            slice_angle_deg=180,
+            height=1,
+            invert_inner_mantle=False
+        )
+
+        for i in range(segs_x):
+            if i == 0:
+                geom_node = model_maker.get_geom_node()
+                continue
+
+            new_geom_node = model_maker.get_geom_node()
+            new_geom = new_geom_node.modify_geom(0)
+
+            new_vdata = new_geom.modify_vertex_data()
+            rotation_deg = 0 if i % 2 == 0 else 180
+            bottom_center = Point3(seg * i, 0, 0)
+            model_maker.tranform_vertices(new_vdata, Vec3(0, 0, 1), bottom_center, rotation_deg)
+            new_vert_cnt = new_vdata.get_num_rows()
+            new_vdata_mem = memoryview(new_vdata.modify_array(0)).cast('B').cast('f')
+
+            new_prim = new_geom.modify_primitive(0)
+            new_prim_cnt = new_prim.get_num_vertices()
+            new_prim_array = new_prim.modify_vertices()
+            new_prim_mem = memoryview(new_prim_array).cast('B').cast('H')
+
+            model_maker.add(
+                geom_node, new_vdata_mem, new_vert_cnt, new_prim_mem, new_prim_cnt)
+
+        pos = Point3(-124 + seg - seg / 2, 0, 20)
+        model = model_maker.modeling(geom_node)
+        model.set_pos(pos)
+        model.reparent_to(self)
+
+        shape = BulletConvexHullShape()
+        shape.add_geom(model.node().get_geom(0))
+        self.node().add_shape(shape, TransformState.make_pos(pos))
+
+
 class Scene(NodePath):
 
     def __init__(self, world):
         super().__init__(PandaNode('scene'))
         self.world = world
         self.reparent_to(base.render)
+
+        self.ambient_light = BasicAmbientLight()
+        self.day_light = BasicDayLight()
 
         self.terrain = Terrain('terrains/mysample3.png')
         self.terrain.reparent_to(self)
@@ -180,3 +194,28 @@ class Scene(NodePath):
         self.water_surface.reparent_to(self)
         self.water_surface.set_pos(0, 0, 0)
         self.world.attach(self.water_surface.node())
+
+        self.road = Road()
+        self.road.reparent_to(self)
+        self.world.attach(self.road.node())
+
+        # *****shape test*****************
+        # test_np = NodePath(BulletRigidBodyNode('test'))
+        # test_np.reparent_to(self)
+        # model = CylinderModel(height=3, inner_radius=0, slice_angle_deg=0, invert_inner_mantle=True).create()
+        # model.reparent_to(test_np)
+
+        # pos = Point3(0, 0, 15)
+        # # scale = Vec3(2)
+        # model.set_pos(pos)
+        # # model.set_scale(scale)
+
+        # shape = BulletConvexHullShape()
+        # shape.add_geom(model.node().get_geom(0))
+        # test_np.node().add_shape(shape, TransformState.make_pos(pos))
+
+        # test_np.set_texture(base.loader.load_texture('textures/metalboard.jpg'))
+        # self.world.attach(test_np.node())
+        # # cylinder.set_p(180)
+        # test_np.hprInterval(15, Vec3(360)).loop()
+        # ***********************************
