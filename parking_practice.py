@@ -7,8 +7,7 @@ from panda3d.core import load_prc_file_data
 from direct.showbase.ShowBase import ShowBase
 from direct.showbase.ShowBaseGlobal import globalClock
 
-# from car import Car
-# from cart import Cart
+from cart import Cart
 from scene import Scene
 
 
@@ -33,30 +32,21 @@ class PracticeParking(ShowBase):
         self.debug = self.render.attach_new_node(BulletDebugNode('debug'))
         self.world.set_debug_node(self.debug.node())
         self.debug.show()
+
         self.scene = Scene(self.world)
         self.scene.reparent_to(self.render)
 
         # ********************************************************
-        # self.car = Car(self.world)
-        # self.car = Cart(self.world)
-        # self.car.reparent_to(self.render)
+        self.cart = Cart(self.world, Point3(-124, 0, 21), Vec3(180, 0, 0))
 
-        # self.floater = NodePath('floater')
-        # self.floater.set_pos(Point3(0, 0, 2))
-        # self.floater.reparent_to(self.car)
-        # self.camera.set_pos(self.car.get_pos() + Vec3(0, -10, 5))
-        # self.camera.reparent_to(self.car)
-        # self.camera.look_at(self.floater)
-        # self.camera.look_at(self.car)
+        self.floater = NodePath('floater')
+        self.floater.set_pos(Point3(0, 0, 2))
+        self.floater.reparent_to(self.cart.model)
+        self.camLens.set_fov(90)
+        self.camera.set_pos(Vec3(0, -5, 3))  # 3
+        self.camera.reparent_to(self.cart.model)
+        self.camera.look_at(self.floater)
         # ********************************************************
-
-        # self.camera_root = NodePath('camera_root')
-        # self.camera.reparent_to(self.camera_root)
-        # self.camera_root.set_pos(-128, -128, 100)
-        # self.camera_root.reparent_to(self.render)
-        self.camera.reparent_to(self.render)
-        self.camera.set_pos(-128, -128, 100)
-        self.camera.look_at(0, 0, 0)
 
         self.dragging = False
         self.before_mouse_pos = None
@@ -103,7 +93,7 @@ class PracticeParking(ShowBase):
 
     def update(self, task):
         dt = globalClock.get_dt()
-        # self.car.control(dt)
+        self.cart.control(dt)
 
         if self.mouseWatcherNode.has_mouse():
             mouse_pos = self.mouseWatcherNode.get_mouse()

@@ -141,10 +141,12 @@ class Road(NodePath):
             inner_radius=inner_radius,
             slice_angle_deg=180,
             height=1,
-            invert_inner_mantle=False
+            # invert_inner_mantle=False
         )
 
         for i in range(segs_x):
+            model_maker.invert = False if i % 2 == 0 else True
+
             if i == 0:
                 geom_node = model_maker.get_geom_node()
                 continue
@@ -167,7 +169,7 @@ class Road(NodePath):
             model_maker.add(
                 geom_node, new_vdata_mem, new_vert_cnt, new_prim_mem, new_prim_cnt)
 
-        pos = Point3(-124 + seg - seg / 2, 0, 20)
+        pos = Point3(-124 + seg - seg / 2, 0, 19.99)  # 20
         model = model_maker.modeling(geom_node)
         model.set_pos(pos)
         model.reparent_to(self)
@@ -203,22 +205,21 @@ class Scene(NodePath):
         self.world.attach(self.road.node())
 
         # *****shape test*****************
-        cart = BulletCart()
-        cart.reparent_to(self)
-        self.world.attach(cart.node())
-        cart.set_pos(-100, -100, 80)
-        base.camera.look_at(cart)
-        cart.hprInterval(15, Vec3(360)).loop()
+        # cart = BulletCart()
+        # cart.reparent_to(self)
+        # self.world.attach(cart.node())
+        # cart.set_pos(-100, -100, 80)
+        # cart.hprInterval(15, Vec3(360)).loop()
 
         # test_np = NodePath(BulletRigidBodyNode('test'))
         # test_np.reparent_to(self)
-        # # model = CylinderModel(height=3, inner_radius=5, slice_angle_deg=60, invert_inner_mantle=True).create()
-        # model = Cube(width=5, depth=5, height=5, segs_d=0).create()
+        # model = CylinderModel(height=3, inner_radius=5, slice_angle_deg=0, invert=False).create()
+        # # model = Cube(width=5, depth=5, height=5, segs_d=0).create()
         # model.reparent_to(test_np)
 
         # pos = Point3(0, 0, 15)
-        # # scale = Vec3(2)
         # model.set_pos(pos)
+        # # scale = Vec3(2)
         # # model.set_scale(scale)
 
         # # shape = BulletConvexHullShape()
@@ -233,5 +234,7 @@ class Scene(NodePath):
         # test_np.set_texture(base.loader.load_texture('textures/metalboard.jpg'))
         # self.world.attach(test_np.node())
         # # cylinder.set_p(180)
-        # test_np.hprInterval(15, Vec3(360)).loop()
+        # # test_np.hprInterval(15, Vec3(360)).loop()
+        # base.camera.set_pos(-128, -128, 100)
+        # base.camera.look_at(test_np)
         # ***********************************
