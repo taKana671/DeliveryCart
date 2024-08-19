@@ -1,22 +1,17 @@
 import math
-import array
 
 from panda3d.bullet import BulletRigidBodyNode
-from panda3d.bullet import BulletCylinderShape
-from panda3d.bullet import BulletTriangleMeshShape, BulletTriangleMesh, BulletHeightfieldShape, ZUp
-from panda3d.bullet import BulletConvexHullShape
+from panda3d.bullet import BulletTriangleMeshShape, BulletHeightfieldShape, ZUp
+from panda3d.bullet import BulletConvexHullShape, BulletTriangleMesh
 from panda3d.core import NodePath, PandaNode, BitMask32, Vec3, Point3
-from panda3d.core import Mat4
 from panda3d.core import Filename, PNMImage
 from panda3d.core import GeoMipTerrain
 from panda3d.core import Shader, TextureStage, TransformState
 from panda3d.core import TransparencyAttrib
-from panda3d.core import GeomVertexArrayFormat, GeomVertexFormat
-from panda3d.core import Geom, GeomTriangles, GeomNode, GeomVertexData
+# from panda3d.core import Geom, GeomTriangles, GeomNode, GeomVertexData
 
 from shapes import CylinderModel, PlaneModel
 from lights import BasicAmbientLight, BasicDayLight
-from cart import BulletCart
 
 
 class Terrain(NodePath):
@@ -81,12 +76,10 @@ class WaterSurface(NodePath):
 
     def __init__(self, w=256, d=256, segs_w=16, segs_d=16):
         super().__init__(BulletRigidBodyNode('water_surface'))
-        self.w = w
-        self.d = d
-        self.segs_w = segs_w
-        self.segs_d = segs_d
+        model_maker = PlaneModel(w, d, segs_w, segs_d) 
+        self.stride = model_maker.stride
 
-        self.model = PlaneModel(w, d, segs_w, segs_d).create()
+        self.model = model_maker.create()
         self.model.set_transparency(TransparencyAttrib.MAlpha)
         self.model.set_texture(base.loader.loadTexture('textures/water.png'))
         self.model.set_pos(0, 0, 0)
@@ -97,6 +90,9 @@ class WaterSurface(NodePath):
         shape = BulletTriangleMeshShape(mesh, dynamic=False)
         self.node().add_shape(shape)
 
+        self.node().set_mass(0)
+        self.set_collide_mask(BitMask32.bit(1))
+
     def wave(self, time, wave_h=3.0):
         geom_node = self.model.node()
         geom = geom_node.modify_geom(0)
@@ -104,7 +100,7 @@ class WaterSurface(NodePath):
         vdata_arr = vdata.modify_array(0)
         vdata_mem = memoryview(vdata_arr).cast('B').cast('f')
 
-        for i in range(0, len(vdata_mem), 12):
+        for i in range(0, len(vdata_mem), self.stride):
             x, y = vdata_mem[i: i + 2]
             z = (math.sin(time + x / wave_h) + math.sin(time + y / wave_h)) * wave_h / 2
             # z = (math.sin(time + x / wave_h) + math.sin(y + x) / wave_h) * wave_h / 2
@@ -112,17 +108,41 @@ class WaterSurface(NodePath):
 
 
 class Road(NodePath):
+    """Create road.
+        Args:
+            segs_x (int): the number of road curves
+            size (int): equal to the width of water surface
+            height (int): the height of columns
+            radius (int): the radius of columns
+            road_width (int): the width of the road
+    """
 
-    def __init__(self, segs_x=4):
+    def __init__(self, segs_x=4, size=256, height=20, radius=4, road_width=6):
         super().__init__(BulletRigidBodyNode('cylinder'))
+        self.segs_x = segs_x
+        self.size = size
+        self.height = height
+        self.radius = radius
+        self.road_width = road_width
+
         self.create_columns()
         self.create_road(segs_x)
         self.set_texture(base.loader.load_texture('textures/iron.jpg'))
 
+        self.node().set_mass(0)
+        self.set_collide_mask(BitMask32.bit(1))
+
+    def column_top_pos(self, direction):
+        x = (self.size / 2 - self.radius) * direction
+        return Point3(x, 0, self.height)
+
     def create_columns(self):
-        model_maker = CylinderModel(radius=4, height=20, segs_a=10, segs_cap=4)
-        for x in [-124, 124]:
-            pos = Point3(x, 0, 1)
+        model_maker = CylinderModel(
+            radius=self.radius, height=self.height, segs_a=10, segs_cap=4)
+        x = self.size / 2 - self.radius
+
+        for direction in [-1, 1]:
+            pos = Point3(x * direction, 0, 1)
             model = model_maker.create()
             model.set_pos(pos)
             model.reparent_to(self)
@@ -132,16 +152,15 @@ class Road(NodePath):
             self.node().add_shape(shape, TransformState.make_pos(pos))
 
     def create_road(self, segs_x):
-        seg = 124 * 2 / segs_x
+        seg = self.size / segs_x
         radius = seg / 2 + 3
-        inner_radius = radius - 6
+        inner_radius = radius - self.road_width
 
         model_maker = CylinderModel(
             radius=radius,
             inner_radius=inner_radius,
             slice_angle_deg=180,
             height=1,
-            # invert_inner_mantle=False
         )
 
         for i in range(segs_x):
@@ -169,7 +188,7 @@ class Road(NodePath):
             model_maker.add(
                 geom_node, new_vdata_mem, new_vert_cnt, new_prim_mem, new_prim_cnt)
 
-        pos = Point3(-124 + seg - seg / 2, 0, 19.99)  # 20
+        pos = Point3(-124 + seg - seg / 2, 0, self.height - 0.01)
         model = model_maker.modeling(geom_node)
         model.set_pos(pos)
         model.reparent_to(self)

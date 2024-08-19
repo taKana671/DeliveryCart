@@ -7,8 +7,9 @@ from panda3d.core import load_prc_file_data
 from direct.showbase.ShowBase import ShowBase
 from direct.showbase.ShowBaseGlobal import globalClock
 
-from cart import Cart
+from cart import CartController
 from scene import Scene
+from cart_baggage import Baggages
 
 
 load_prc_file_data("", """
@@ -37,16 +38,20 @@ class PracticeParking(ShowBase):
         self.scene.reparent_to(self.render)
 
         # ********************************************************
-        self.cart = Cart(self.world, Point3(-124, 0, 21), Vec3(180, 0, 0))
+        pos = self.scene.road.column_top_pos(-1) + Vec3(0, 0, 1)
+        self.cart_controller = CartController(pos, Vec3(180, 0, 0))
 
         self.floater = NodePath('floater')
         self.floater.set_pos(Point3(0, 0, 2))
-        self.floater.reparent_to(self.cart.model)
+        self.floater.reparent_to(self.cart_controller.cart)
         self.camLens.set_fov(90)
         self.camera.set_pos(Vec3(0, -5, 3))  # 3
-        self.camera.reparent_to(self.cart.model)
+        # self.camera.set_pos(Vec3(5, 0, 3))  # 3
+        self.camera.reparent_to(self.cart_controller.cart)
         self.camera.look_at(self.floater)
         # ********************************************************
+
+        # self.baggages = Baggages(self.world)
 
         self.dragging = False
         self.before_mouse_pos = None
@@ -56,7 +61,12 @@ class PracticeParking(ShowBase):
         self.accept('mouse1', self.mouse_click)
         self.accept('mouse1-up', self.mouse_release)
 
+        self.accept('l', self.load_baggages)
+
         self.taskMgr.add(self.update, 'update')
+
+    def load_baggages(self):
+        self.baggages.load()
 
     def toggle_debug(self):
         if self.debug.is_hidden():
@@ -93,7 +103,7 @@ class PracticeParking(ShowBase):
 
     def update(self, task):
         dt = globalClock.get_dt()
-        self.cart.control(dt)
+        self.cart_controller.control(dt)
 
         if self.mouseWatcherNode.has_mouse():
             mouse_pos = self.mouseWatcherNode.get_mouse()

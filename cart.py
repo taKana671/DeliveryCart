@@ -8,14 +8,6 @@ from panda3d.core import Vec3, Point3, TransformState, BitMask32
 from shapes import CubeModel, CylinderModel
 
 
-class Wheels(Enum):
-
-    front_right = auto()
-    front_left = auto()
-    back_right = auto()
-    back_left = auto()
-
-
 class Status(Enum):
 
     TURN_LEFT = auto()
@@ -26,92 +18,71 @@ class Status(Enum):
     BACK = auto()
 
 
-class BulletCart(NodePath):
+class Cart(NodePath):
 
-    def __init__(self, pos, hpr):
-        super().__init__(BulletRigidBodyNode('bullet_cart'))
-        self.create_cart()
-        self.create_wheels()
+    def __init__(self):
+        super().__init__(BulletRigidBodyNode('cart'))
         self.set_collide_mask(BitMask32.bit(1))
-        self.set_pos_hpr(pos, hpr)
         self.node().set_mass(800)
         self.node().set_deactivation_enabled(False)
+        self.node().set_friction(1)
+        self.node().set_restitution(0.1)
 
-    def create_cart(self):
-        model = CubeModel(width=2, depth=4, height=0.5, segs_w=2, segs_d=4).create()
-        pos = Point3(0, 0, 1)
-        model.set_name('cart')
-        model.set_pos(pos)
+        self.vehicle = BulletVehicle(base.world, self.node())
+        self.vehicle.set_coordinate_system(ZUp)
+        base.world.attach_vehicle(self.vehicle)
 
-        end, tip = model.get_tight_bounds()
+        self.create_cart_board()
+        self.create_cart_wheels()
+        self.reparent_to(base.render)
+        base.world.attach(self.node())
+
+        self.steering_clamp = 45.0       # degree
+        self.steering_increment = 120.0  # degree per second
+
+    def create_cart_board(self):
+        self.model = CubeModel(width=2, depth=4, height=0.5, segs_w=2, segs_d=4).create()
+        self.model.set_name('board')
+        self.model.set_pos(Vec3(0, 0, 1))
+
+        end, tip = self.model.get_tight_bounds()
         shape = BulletBoxShape((tip - end) / 2)
-        self.node().add_shape(shape, TransformState.make_pos(pos))
+        self.node().add_shape(shape, TransformState.make_pos(Vec3(0, 0, 1)))
 
         tex = base.loader.loadTexture('textures/board.jpg')
-        model.set_texture(tex)
-        model.reparent_to(self)
+        self.model.set_texture(tex)
+        self.model.reparent_to(self)
 
-    def create_wheels(self):
+    def create_cart_wheels(self):
+        model_maker = CylinderModel(radius=0.25, height=0.25)
+        tex = base.loader.loadTexture('textures/metalboard.jpg')
+
         wheel_pos = {
-            Wheels.front_right: Point3(0.75, 1.5, 0.5),
-            Wheels.front_left: Point3(-1, 1.5, 0.5),
-            Wheels.back_right: Point3(0.75, -1.5, 0.5),
-            Wheels.back_left: Point3(-1, -1.5, 0.5),
+            'front_right': Point3(0.875, 1.75, 0.875),
+            'front_left': Point3(-0.875, 1.75, 0.875),
+            'back_right': Point3(0.875, -1.75, 0.875),
+            'back_left': Point3(-0.875, -1.75, 0.875),
         }
 
-        tex = base.loader.loadTexture('textures/metalboard.jpg')
-        model_maker = CylinderModel(radius=0.25, height=0.25)
-
-        for wh, pos in wheel_pos.items():
+        for name, pos in wheel_pos.items():
             model = model_maker.create()
             model.set_pos_hpr(pos, Vec3(90, 90, 0))
             model.set_texture(tex)
+            model.reparent_to(self)
 
-            # shift the center.
-            pivot = model.get_bounds().get_center()
-            new_np = self.attach_new_node(wh.name)
-            new_np.set_pos(pivot)
-            model.wrt_reparent_to(new_np)
+            new_np = self.relocate(name, model)
+            front = name.startswith('front')
+            self.add_wheel(pos, front, new_np)
 
-
-class Cart:
-
-    def __init__(self, world, pos, hpr):
-        self.world = world
-        self.model = BulletCart(pos, hpr)
-        self.model.reparent_to(base.render)
-        self.world.attach(self.model.node())
-
-        self.setup_vehicke()
-        self.setup_key()
-
-        self.steering_state = None
-        self.driving_state = None
-
-    def setup_key(self): 
-        base.accept('q', self.monitor_key, [Status.TURN_LEFT, True])
-        base.accept('q-up', self.monitor_key, [Status.STOP_TURN, True])
-        base.accept('e', self.monitor_key, [Status.TURN_RIGHT, True])
-        base.accept('e-up', self.monitor_key, [Status.STOP_TURN, True])
-        base.accept('w', self.monitor_key, [Status.ACCELERATE, False])
-        base.accept('w-up', self.monitor_key, [Status.DECELERATE, False])
-        base.accept('s', self.monitor_key, [Status.BACK, False])
-        base.accept('s-up', self.monitor_key, [Status.DECELERATE, False])
-
-    def setup_vehicke(self):
-        self.vehicle = BulletVehicle(self.world, self.model.node())
-        self.vehicle.set_coordinate_system(ZUp)
-        self.world.attach_vehicle(self.vehicle)
-
-        for wh in Wheels:
-            np = self.model.find(wh.name)
-            pos = np.get_pos()
-            front = wh.name.startswith('front')
-            self.add_wheel(pos, front, np)
-
-        self.steering = 0.0              # degree
-        self.steering_clamp = 45.0       # degree
-        self.steering_increment = 120.0  # degree per second
+    def relocate(self, name, model):
+        """Create the new parent node under the original parent, bring the new parent
+           to the center, and relocate the node without changing any of it's transformation.
+        """
+        pivot = model.get_bounds().get_center()
+        new_np = self.attach_new_node(name)
+        new_np.set_pos(pivot)
+        model.wrt_reparent_to(new_np)
+        return new_np
 
     def add_wheel(self, pos, front, np):
         wheel = self.vehicle.create_wheel()
@@ -131,6 +102,49 @@ class Cart:
         wheel.set_friction_slip(100.0)
         wheel.set_roll_influence(0.1)
 
+    def get_abs_speed(self):
+        return abs(self.vehicle.get_current_speed_km_hour())
+
+    def get_rear_wheel_engine_forces(self):
+        return sum(self.vehicle.get_wheel(i).get_engine_force() for i in (2, 3))
+
+    def apply_steering(self, steering):
+        # Apply steering to front wheels
+        self.vehicle.set_steering_value(steering, 0)
+        self.vehicle.set_steering_value(steering, 1)
+
+    def apply_engine_and_brake(self, engine_force, brake_force):
+        # Apply engine and brake to rear wheels
+        self.vehicle.apply_engine_force(engine_force, 2)
+        self.vehicle.apply_engine_force(engine_force, 3)
+        self.vehicle.set_brake(brake_force, 2)
+        self.vehicle.set_brake(brake_force, 3)
+
+
+class CartController:
+
+    def __init__(self, pos, hpr):
+        self.start_pos = pos
+        self.start_hpr = hpr
+
+        self.cart = Cart()
+        self.cart.set_pos_hpr(self.start_pos, self.start_hpr)
+        self.accept_control_keys()
+
+        self.steering = 0   # degree
+        self.steering_state = None
+        self.driving_state = None
+
+    def accept_control_keys(self):
+        base.accept('q', self.monitor_key, [Status.TURN_LEFT, True])
+        base.accept('q-up', self.monitor_key, [Status.STOP_TURN, True])
+        base.accept('e', self.monitor_key, [Status.TURN_RIGHT, True])
+        base.accept('e-up', self.monitor_key, [Status.STOP_TURN, True])
+        base.accept('w', self.monitor_key, [Status.ACCELERATE, False])
+        base.accept('w-up', self.monitor_key, [Status.DECELERATE, False])
+        base.accept('s', self.monitor_key, [Status.BACK, False])
+        base.accept('s-up', self.monitor_key, [Status.DECELERATE, False])
+
     def monitor_key(self, status, steering_control):
         if steering_control:
             self.steering_state = status
@@ -138,38 +152,36 @@ class Cart:
             self.driving_state = status
 
     def get_steering_clamp(self):
-        match speed := abs(self.vehicle.get_current_speed_km_hour()):
+        match speed := self.cart.get_abs_speed():
 
             case speed if speed > 50:
-                steering_clamp = self.steering_clamp * 0.25
+                return self.cart.steering_clamp * 0.25
 
             case speed if speed > 40:
-                steering_clamp = self.steering_clamp * 0.5
+                return self.cart.steering_clamp * 0.5
 
             case speed if speed > 30:
-                steering_clamp = self.steering_clamp * 0.75
+                return self.cart.steering_clamp * 0.75
 
             case _:
-                steering_clamp = self.steering_clamp
-
-        return steering_clamp
+                return self.cart.steering_clamp
 
     def turn_left(self, dt, min_value):
-        self.steering += dt * self.steering_increment
+        self.steering += dt * self.cart.steering_increment
         self.steering = min(self.steering, min_value)
 
     def turn_right(self, dt, max_value):
-        self.steering -= dt * self.steering_increment
+        self.steering -= dt * self.cart.steering_increment
         self.steering = max(self.steering, max_value)
 
     def relax_steering_angle(self, dt):
-        if sum(self.vehicle.get_wheel(i).get_engine_force() for i in (2, 3)) != 0:
+        if self.cart.get_rear_wheel_engine_forces() != 0:
             if self.steering > 0:
                 self.turn_right(dt, 0)
             else:
                 self.turn_left(dt, 0)
 
-    def steer(self, dt):
+    def control_steering_angle(self, dt):
         match self.steering_state:
 
             case Status.TURN_LEFT:
@@ -185,30 +197,26 @@ class Cart:
                     self.relax_steering_angle(dt)
 
         # Apply steering to front wheels
-        self.vehicle.set_steering_value(self.steering, 0)
-        self.vehicle.set_steering_value(self.steering, 1)
+        self.cart.apply_steering(self.steering)
 
-    def drive(self, dt):
+    def control_engine_and_brake(self, dt):
         engine_force = 0.0
         brake_force = 0.0
 
         match self.driving_state:
 
             case Status.ACCELERATE:
-                engine_force += 1000
+                engine_force += 500  # 1000
 
             case Status.DECELERATE:
-                brake_force += 100
+                brake_force += 50    # 100
 
             case Status.BACK:
-                engine_force -= 1000
+                engine_force -= 500  # 1000
 
         # Apply engine and brake to rear wheels
-        self.vehicle.apply_engine_force(engine_force, 2)
-        self.vehicle.apply_engine_force(engine_force, 3)
-        self.vehicle.set_brake(brake_force, 2)
-        self.vehicle.set_brake(brake_force, 3)
+        self.cart.apply_engine_and_brake(engine_force, brake_force)
 
     def control(self, dt):
-        self.steer(dt)
-        self.drive(dt)
+        self.control_steering_angle(dt)
+        self.control_engine_and_brake(dt)
