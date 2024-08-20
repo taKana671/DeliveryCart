@@ -51,7 +51,7 @@ class PracticeParking(ShowBase):
         self.camera.look_at(self.floater)
         # ********************************************************
 
-        # self.baggages = Baggages(self.world)
+        self.baggages = Baggages()
 
         self.dragging = False
         self.before_mouse_pos = None
@@ -66,7 +66,7 @@ class PracticeParking(ShowBase):
         self.taskMgr.add(self.update, 'update')
 
     def load_baggages(self):
-        self.baggages.load()
+        self.baggages.load(1)
 
     def toggle_debug(self):
         if self.debug.is_hidden():
@@ -116,7 +116,6 @@ class PracticeParking(ShowBase):
 
         self.world.do_physics(dt)
         return task.cont
-
 
 
 if __name__ == '__main__':

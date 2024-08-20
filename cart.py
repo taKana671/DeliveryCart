@@ -20,8 +20,10 @@ class Status(Enum):
 
 class Cart(NodePath):
 
-    def __init__(self):
+    def __init__(self, width=2, depth=4, height=0.5):
         super().__init__(BulletRigidBodyNode('cart'))
+        self.size = Vec3(width, depth, height)
+
         self.set_collide_mask(BitMask32.bit(1))
         self.node().set_mass(800)
         self.node().set_deactivation_enabled(False)
@@ -38,10 +40,12 @@ class Cart(NodePath):
         base.world.attach(self.node())
 
         self.steering_clamp = 45.0       # degree
-        self.steering_increment = 120.0  # degree per second
+        # self.steering_increment = 120.0  # degree per second
+        self.steering_increment = 60
 
     def create_cart_board(self):
-        self.model = CubeModel(width=2, depth=4, height=0.5, segs_w=2, segs_d=4).create()
+        self.model = CubeModel(
+            self.size.x, self.size.y, self.size.z, segs_w=2, segs_d=4).create()
         self.model.set_name('board')
         self.model.set_pos(Vec3(0, 0, 1))
 
