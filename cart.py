@@ -1,5 +1,6 @@
 from enum import Enum, auto
 
+import numpy as np
 from panda3d.bullet import BulletBoxShape, ZUp
 from panda3d.bullet import BulletRigidBodyNode, BulletVehicle
 from panda3d.core import NodePath
@@ -18,7 +19,7 @@ class Status(Enum):
     BACK = auto()
 
 
-class Cart(NodePath):
+class BulletCart(NodePath):
 
     def __init__(self, width=2, depth=4, height=0.5):
         super().__init__(BulletRigidBodyNode('cart'))
@@ -44,18 +45,18 @@ class Cart(NodePath):
         self.steering_increment = 60
 
     def create_cart_board(self):
-        self.model = CubeModel(
+        self.board = CubeModel(
             self.size.x, self.size.y, self.size.z, segs_w=2, segs_d=4).create()
-        self.model.set_name('board')
-        self.model.set_pos(Vec3(0, 0, 1))
+        self.board.set_name('board')
+        self.board.set_pos(Vec3(0, 0, 1))
 
-        end, tip = self.model.get_tight_bounds()
+        end, tip = self.board.get_tight_bounds()
         shape = BulletBoxShape((tip - end) / 2)
         self.node().add_shape(shape, TransformState.make_pos(Vec3(0, 0, 1)))
 
         tex = base.loader.loadTexture('textures/board.jpg')
-        self.model.set_texture(tex)
-        self.model.reparent_to(self)
+        self.board.set_texture(tex)
+        self.board.reparent_to(self)
 
     def create_cart_wheels(self):
         model_maker = CylinderModel(radius=0.25, height=0.25)
@@ -127,17 +128,20 @@ class Cart(NodePath):
 
 class CartController:
 
-    def __init__(self, pos, hpr):
-        self.start_pos = pos
-        self.start_hpr = hpr
-
-        self.cart = Cart()
-        self.cart.set_pos_hpr(self.start_pos, self.start_hpr)
+    def __init__(self, cart):
+        self.cart = cart
+        self.setup_cart()
         self.accept_control_keys()
 
         self.steering = 0   # degree
         self.steering_state = None
         self.driving_state = None
+
+        self.tail = NodePath(BulletRigidBodyNode('tail'))
+        self.tail.set_pos(Vec3(0, -5, 3))
+        self.tail.node().set_linear_factor(Vec3(1, 1, 0))
+        self.tail.reparent_to(self.cart)
+
 
     def accept_control_keys(self):
         base.accept('q', self.monitor_key, [Status.TURN_LEFT, True])
@@ -148,6 +152,14 @@ class CartController:
         base.accept('w-up', self.monitor_key, [Status.DECELERATE, False])
         base.accept('s', self.monitor_key, [Status.BACK, False])
         base.accept('s-up', self.monitor_key, [Status.DECELERATE, False])
+
+    def setup_cart(self):
+        start_pos, start_hpr = base.scene.road.get_start_location()
+        start_pos += Vec3(0, 0, 1)
+        self.cart.set_pos_hpr(start_pos, start_hpr)
+
+        # self.angular_speed = 0
+        # self.start_xy = start_pos.xy
 
     def monitor_key(self, status, steering_control):
         if steering_control:
@@ -222,5 +234,29 @@ class CartController:
         self.cart.apply_engine_and_brake(engine_force, brake_force)
 
     def control(self, dt):
+        # print(self.cart.board.get_pos(base.render), self.cart.get_pos())
         self.control_steering_angle(dt)
         self.control_engine_and_brake(dt)
+
+        # cart_pos = self.cart.get_pos(base.render)
+        # self.angular_speed = self.get_angle(Vec3(-92, 0, 0), cart_pos.xy, self.start_xy)
+        # self.start_xy = cart_pos.xy
+        # print(self.angular_speed)
+
+    
+    def get_angle(self, center, pt1, pt2):
+        vec_a = pt1 - center.xy
+        vec_b = pt2 - center.xy
+
+        vec_a_length = self.norm(center, pt1)
+        vec_b_length = self.norm(center, pt2)
+        # inner = np.inner(vec_a_length, vec_b_length)
+        inner_product = vec_a.x * vec_b.x + vec_a.y * vec_b.y
+        cos = inner_product / (vec_a_length * vec_b_length)
+        # print(inner_product, cos)
+        rad = np.arccos(cos)
+        deg = np.rad2deg(rad)
+        return deg
+
+    def norm(self, pt1, pt2):
+        return ((pt2.x - pt1.x) ** 2 + (pt2.y - pt1.y) ** 2) ** 0.5

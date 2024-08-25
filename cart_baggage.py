@@ -1,5 +1,3 @@
-import random
-
 from panda3d.bullet import BulletBoxShape
 from panda3d.bullet import BulletRigidBodyNode
 from panda3d.core import NodePath
@@ -30,8 +28,8 @@ class Baggage(NodePath):
 
 class Baggages:
 
-    def __init__(self, size=0.5):
-        self.size = size
+    def __init__(self, width=0.5, depth=0.5, height=0.25):
+        self.size = Vec3(width, depth, height)
         self.root_np = NodePath('baggages')
         self.root_np.reparent_to(base.render)
 
@@ -39,32 +37,29 @@ class Baggages:
         self.cols = int(self.cart.size.x) * 2   # 2 * 2 = 4
         self.rows = int(self.cart.size.y) * 2   # 4 * 2 = 8
         self.model_maker = CubeModel(
-            width=self.size, depth=self.size, height=self.size)
+            width=self.size.x, depth=self.size.y, height=self.size.z)
 
     def load(self, stack_layers=1):
-        cart_center = self.cart.model.get_pos(base.render)
-        start_x = -self.cart.size.x / 2 + self.size / 2   # -0.75
-        start_y = -self.cart.size.y / 2 + self.size / 2   # -1.75
-        start_z = self.cart.size.z / 2 + self.size / 2    # 0.5
-        half = self.size / 2                              # 0.25
-
-        textures = [
-            base.loader.load_texture('textures/paper_03.jpg'),
-            base.loader.load_texture('textures/paper_04.jpg')
-        ]
+        cart_center = self.cart.board.get_pos(base.render)
+        start_x = -self.cart.size.x / 2 + self.size.x / 2   # -0.75
+        start_y = -self.cart.size.y / 2 + self.size.y / 2   # -1.75
+        start_z = self.cart.size.z / 2 + self.size.z / 2    # 0.375
+        half_x = self.size.x / 2                            # 0.25
+        half_y = self.size.y / 2                            # 0.25
+        tex = base.loader.load_texture('textures/paper_04.jpg')
 
         for n in range(stack_layers):
-            offset = half * n
+            offset_x = half_x * n
+            offset_y = half_y * n
 
             for i in range(self.cols - n):
-                x = start_x + i * self.size + offset
-                z = start_z + n * self.size
+                x = start_x + i * self.size.x + offset_x
+                z = start_z + n * self.size.y / 2
 
                 for j in range(self.rows - n):
-                    y = start_y + j * self.size + offset
+                    y = start_y + j * self.size.y + offset_y
                     pos = cart_center + Vec3(x, y, z)
                     model = self.model_maker.create()
-                    tex = random.choice(textures)
                     baggage = Baggage(f'baggage_{n}{i}{j}', pos, model, tex)
                     baggage.reparent_to(self.root_np)
                     base.world.attach(baggage.node())

@@ -3,15 +3,27 @@ import math
 from panda3d.bullet import BulletRigidBodyNode
 from panda3d.bullet import BulletTriangleMeshShape, BulletHeightfieldShape, ZUp
 from panda3d.bullet import BulletConvexHullShape, BulletTriangleMesh
-from panda3d.core import NodePath, PandaNode, BitMask32, Vec3, Point3
+from panda3d.core import NodePath, PandaNode
+from panda3d.core import BitMask32, Vec3, Point3, LColor
 from panda3d.core import Filename, PNMImage
 from panda3d.core import GeoMipTerrain
 from panda3d.core import Shader, TextureStage, TransformState
 from panda3d.core import TransparencyAttrib
-# from panda3d.core import Geom, GeomTriangles, GeomNode, GeomVertexData
 
 from shapes import CylinderModel, PlaneModel
 from lights import BasicAmbientLight, BasicDayLight
+
+
+class Sky(NodePath):
+
+    def __init__(self):
+        super().__init__(PandaNode('sky'))
+        model = base.loader.load_model('models/blue-sky/blue-sky-sphere')
+        model.set_color(LColor(2, 2, 2, 1))
+        model.set_scale(0.2)
+        model.set_z(0)
+        model.reparent_to(self)
+        self.set_shader_off()
 
 
 class Terrain(NodePath):
@@ -76,7 +88,7 @@ class WaterSurface(NodePath):
 
     def __init__(self, w=256, d=256, segs_w=16, segs_d=16):
         super().__init__(BulletRigidBodyNode('water_surface'))
-        model_maker = PlaneModel(w, d, segs_w, segs_d) 
+        model_maker = PlaneModel(w, d, segs_w, segs_d)
         self.stride = model_maker.stride
 
         self.model = model_maker.create()
@@ -92,6 +104,7 @@ class WaterSurface(NodePath):
 
         self.node().set_mass(0)
         self.set_collide_mask(BitMask32.bit(1))
+        self.set_shader_off()
 
     def wave(self, time, wave_h=3.0):
         geom_node = self.model.node()
@@ -113,33 +126,36 @@ class Road(NodePath):
             segs_x (int): the number of road curves
             size (int): equal to the width of water surface
             height (int): the height of columns
-            radius (int): the radius of columns
+            col_radius (int): the radius of columns
             road_width (int): the width of the road
     """
 
-    def __init__(self, segs_x=4, size=256, height=20, radius=4, road_width=6):
+    def __init__(self, segs_x=4, size=256, height=20, col_radius=4, road_width=6):
         super().__init__(BulletRigidBodyNode('cylinder'))
         self.segs_x = segs_x
-        self.size = size
+        self.size = size - col_radius * 2
         self.height = height
-        self.radius = radius
+        self.col_radius = col_radius
         self.road_width = road_width
 
         self.create_columns()
         self.create_road(segs_x)
-        self.set_texture(base.loader.load_texture('textures/iron.jpg'))
+        self.set_texture(base.loader.load_texture('textures/concrete_01.jpg'))
 
         self.node().set_mass(0)
         self.set_collide_mask(BitMask32.bit(1))
 
-    def column_top_pos(self, direction):
-        x = (self.size / 2 - self.radius) * direction
-        return Point3(x, 0, self.height)
+    def get_start_location(self, direction=-1):
+        x = self.size / 2 * direction
+        start_pos = Point3(x, 0, self.height)
+        start_hpr = Vec3(180, 0, 0)
+
+        return start_pos, start_hpr
 
     def create_columns(self):
         model_maker = CylinderModel(
-            radius=self.radius, height=self.height, segs_a=10, segs_cap=4)
-        x = self.size / 2 - self.radius
+            radius=self.col_radius, height=self.height, segs_a=10, segs_cap=4)
+        x = self.size / 2
 
         for direction in [-1, 1]:
             pos = Point3(x * direction, 0, 1)
@@ -188,9 +204,10 @@ class Road(NodePath):
             model_maker.add(
                 geom_node, new_vdata_mem, new_vert_cnt, new_prim_mem, new_prim_cnt)
 
-        pos = Point3(-124 + seg - seg / 2, 0, self.height - 0.01)
+        pos = Point3(-self.size / 2 + seg - seg / 2, 0, self.height - 0.001)
         model = model_maker.modeling(geom_node)
         model.set_pos(pos)
+        model.set_tex_scale(TextureStage.get_default(), 5, 3)
         model.reparent_to(self)
 
         # If using BulletConvexHullShape, hollow is lost because of the shape.
@@ -209,6 +226,9 @@ class Scene(NodePath):
 
         self.ambient_light = BasicAmbientLight()
         self.day_light = BasicDayLight()
+
+        self.sky = Sky()
+        self.sky.reparent_to(self)
 
         self.terrain = Terrain('terrains/mysample3.png')
         self.terrain.reparent_to(self)
