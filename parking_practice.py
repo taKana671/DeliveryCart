@@ -11,6 +11,7 @@ from direct.showbase.ShowBaseGlobal import globalClock
 from cart import CartController, BulletCart
 from scene import Scene
 from cart_baggage import Baggages
+from level_select_frame import Frame
 
 
 load_prc_file_data("", """
@@ -45,10 +46,14 @@ class PracticeParking(ShowBase):
         self.floater.reparent_to(cart)
 
         self.camLens.set_fov(90)
-        self.camera.set_pos(Vec3(0, -5, 3))
+
+        self.camera.set_pos(Point3(0, 124, 60))
+        self.camera.look_at(Point3(124, -124, 0))
+
+        # self.camera.set_pos(Vec3(0, -5, 3))
         # self.camera.set_pos(Vec3(5, 0, 3))
-        self.camera.reparent_to(cart.board)
-        self.camera.look_at(self.floater)
+        # self.camera.reparent_to(cart.board)
+        # self.camera.look_at(self.floater)
 
         self.baggages = Baggages()
 
@@ -66,6 +71,8 @@ class PracticeParking(ShowBase):
         self.taskMgr.add(self.update, 'update')
 
         self.state = False
+        self.frame = Frame()
+        # self.frame.reparent_to(self.aspect2d)
 
     def load_baggages(self):
         self.baggages.load(2)
@@ -108,26 +115,26 @@ class PracticeParking(ShowBase):
 
     def update(self, task):
         dt = globalClock.get_dt()
-        self.cart_controller.control(dt)
+        # self.cart_controller.control(dt)
 
         ########################################################################################
         # option 1
-        if not self.state:
-            if self.camera.get_z(self.render) < 23:
-                self.state = True
-                pos = self.camera.get_pos(self.render)
-                hpr = self.camera.get_hpr(self.render)
+        # if not self.state:
+        #     if self.camera.get_z(self.render) < 23:
+        #         self.state = True
+        #         pos = self.camera.get_pos(self.render)
+        #         hpr = self.camera.get_hpr(self.render)
 
-                self.camera.reparent_to(self.render)
-                self.camera.set_pos_hpr(pos, hpr)
-        else:
-            pos = self.render.get_relative_point(self.cart_controller.cart, Vec3(0, -5, 0))
-            # maybe prevent jitter?
-            self.camera.set_x(round(pos.x, 3))
-            self.camera.set_y(round(pos.y, 3))
-            # self.camera.set_x(pos.x)
-            # self.camera.set_y(pos.y)
-            self.camera.look_at(self.floater)
+        #         self.camera.reparent_to(self.render)
+        #         self.camera.set_pos_hpr(pos, hpr)
+        # else:
+        #     pos = self.render.get_relative_point(self.cart_controller.cart, Vec3(0, -5, 0))
+        #     # maybe prevent jitter?
+        #     self.camera.set_x(round(pos.x, 3))
+        #     self.camera.set_y(round(pos.y, 3))
+        #     # self.camera.set_x(pos.x)
+        #     # self.camera.set_y(pos.y)
+        #     self.camera.look_at(self.floater)
         #########################################################################################
 
         if self.mouseWatcherNode.has_mouse():
@@ -138,7 +145,7 @@ class PracticeParking(ShowBase):
                     self.rotate_camera(mouse_pos, dt)
 
         self.scene.water_surface.wave(task.time)
-        self.scene.day_light.update(self.cart_controller.cart)
+        # self.scene.day_light.update(self.cart_controller.cart)
 
         self.world.do_physics(dt)
         return task.cont
