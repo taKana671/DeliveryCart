@@ -2,33 +2,35 @@
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectLabel import DirectLabel
 from direct.gui.DirectButton import DirectButton
+from direct.interval.IntervalGlobal import Sequence, Func, Wait
 from panda3d.core import CardMaker, LColor, Point3
 from panda3d.core import NodePath, TextNode
 from panda3d.core import TransparencyAttrib
 
 
-class Frame(DirectFrame):
+class SelectorFrame(DirectFrame):
 
     def __init__(self):
+        self.pos_appear = Point3(0, -1, 0.7)
+        self.pos_disappear = Point3(0, -1, 1.5)
+
         super().__init__(
-            parent=base.aspect2d,
             frameSize=(-0.65, 0.65, 0.2, -0.2),  # (left, right, bottom, top)
             frameColor=(1, 1, 1, 0.2),
-            pos=(0, 0, 0.7)
+            pos=self.pos_disappear
         )
         self.initialiseoptions(type(self))
         self.set_transparency(TransparencyAttrib.MAlpha)
-        self.selected_level = None
 
+        self.selected_level = None
+        self.appeared = False
+        self.create_gui()
+
+    def create_gui(self):
         color_high = LColor(0.5, 0.5, 0.5, 1)
         color_normal = LColor(0.66, 0.66, 0.66, 1)
         self.create_label(color_high, 'Select Level')
         self.create_buttons(color_high, color_normal)
-
-
-    def select_level(self, level):
-        self.selected_level = level
-        print(self.selected_level, type(level))
 
     def create_label(self, color, text):
         font = base.loader.load_font('font/Candaral.ttf')
@@ -50,6 +52,9 @@ class Frame(DirectFrame):
         nd.set_text_scale(0.1)
         nd.set_text_color(color)
         return nd
+
+    def select_level(self, level):
+        self.selected_level = level
 
     def create_buttons(self, color_high, color_normal):
         font = base.loader.load_font('font/segoeui.ttf')
@@ -83,3 +88,23 @@ class Frame(DirectFrame):
                 command=self.select_level,
                 extraArgs=[int(num)]
             )
+
+    def appear(self, callback, *args, **kwargs):
+        self.reparent_to(base.aspect2d)
+        self.appeared = True
+
+        Sequence(
+            Wait(0.5),
+            self.posInterval(0.5, self.pos_appear),
+            Func(callback, *args, **kwargs)
+        ).start()
+
+    def disappear(self, callback, *args, **kwargs):
+        self.appeared = False
+
+        Sequence(
+            Wait(0.5),
+            self.posInterval(0.5, self.pos_disappear),
+            Func(self.detach_node),
+            Func(callback, *args, **kwargs)
+        ).start()

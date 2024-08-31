@@ -36,6 +36,8 @@ class Terrain(NodePath):
         self.set_collide_mask(BitMask32.bit(1))
         self.create_terrain(heightmap_path)
 
+        # self.set_transparency(TransparencyAttrib.M_alpha)
+
     def create_terrain(self, heightmap_path):
         img = PNMImage(Filename(heightmap_path))
         shape = BulletHeightfieldShape(img, self.height, ZUp)

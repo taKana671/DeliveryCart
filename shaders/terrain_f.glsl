@@ -26,15 +26,9 @@ void main() {
     float max_z = 0.0;
 
     min_z = -100.0/scale;
-    max_z = 35.0/scale;
+    // max_z = 35.0/scale;
+    max_z = 50.0/scale;
     float w0 = computeWeight(min_z, max_z, vertex);
     float w = clamp(w0 * 2.0, 0.0, 1.0);
-
-    vec3 color = vec3(0.0);
-    color += pow(tex0.rgb, vec3(2.2)) * w;
-    color += pow(tex1.rgb, vec3(2.2)) * (1.0 - w);
-
-    fragColor.rgb = color;
-    fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / 2.2));
+    fragColor = tex0 * w + tex1 * (1.0 - w);
 }
-
