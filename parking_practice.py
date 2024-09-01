@@ -17,7 +17,7 @@ from direct.interval.IntervalGlobal import Sequence, Func, Wait
 from cart import CartController, BulletCart
 from scene import Scene
 from cart_baggage import Baggages
-from level_select_frame import SelectorFrame, Caption
+from gui import SelectorFrame, Caption
 
 
 load_prc_file_data("", """
@@ -78,6 +78,7 @@ class PracticeParking(ShowBase):
 
         self.baggages = Baggages()
         self.selector_frame = SelectorFrame()
+        self.caption = Caption()
         # self.level_selector.reparent_to(self.aspect2d)
         # self.screen = Screen()
 
@@ -142,8 +143,7 @@ class PracticeParking(ShowBase):
         camera.look_at(look_at)
 
     def fade_camera(self, parent, pos, look_at, duration=2.0):
-        """Fade the currently viewed scene to another camera perspective
-           over a period of [duration] seconds
+        """Fade the currently viewed scene to another camera perspective.
             Args:
                 parent (NodePath): the NodePath to which camera will be parented
                 pos (Point3)
@@ -164,6 +164,7 @@ class PracticeParking(ShowBase):
         card = buffer.get_texture_card()
         card.reparent_to(self.render2d)
         card.set_transparency(TransparencyAttrib.M_alpha)
+        # card.set_transparency(TransparencyAttrib.M_multisample)
 
         Sequence(
             card.colorScaleInterval(duration, 1, 0, blendType='easeInOut'),
@@ -173,7 +174,6 @@ class PracticeParking(ShowBase):
             Func(self.graphicsEngine.remove_window, buffer),
             Func(lambda: setattr(self, 'camera_faded', True))
         ).start()
-
 
     def update(self, task):
         dt = globalClock.get_dt()
@@ -215,8 +215,7 @@ class PracticeParking(ShowBase):
             case Status.LOAD_BAGGAGES:
                 if self.camera_faded:
                     self.baggages.load(self.selector_frame.selected_level)  # selected_levelをどこかのタイミングで初期化すること
-                    Caption('Go!').show_text()
-                    # self.show_caption('GO!')
+                    self.caption.show('Go!')
                     self.camera_faded = False
                     self.state = Status.PLAY
 
@@ -241,23 +240,6 @@ class PracticeParking(ShowBase):
 
         self.world.do_physics(dt)
         return task.cont
-
-    def show_caption(self, text, wait=0.5, duration=1.0):
-        text_nd = TextNode('caption')
-        text_nd.set_text(text)
-        text_nd.set_font(base.loader.load_font('font/Candaral.ttf'))
-        text_nd.set_text_scale(0.15)
-        text_nd.set_text_color(LColor(0.5, 0.5, 0.5, 1))
-        text_np = self.aspect2d.attach_new_node(text_nd)
-        text_np.set_transparency(TransparencyAttrib.M_alpha)
-        text_np.set_pos(Point3(0, 0, 0.8))
-
-        Sequence(
-            text_np.colorScaleInterval(duration, 1, 0, blendType='easeInOut'),
-            text_np.colorScaleInterval(duration, 0, 1, blendType='easeInOut'),
-            Func(text_np.remove_node),
-        ).start()
-
 
 
 if __name__ == '__main__':
