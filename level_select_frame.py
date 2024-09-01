@@ -89,22 +89,43 @@ class SelectorFrame(DirectFrame):
                 extraArgs=[int(num)]
             )
 
-    def appear(self, callback, *args, **kwargs):
+    def change_status(self, status):
+        self.appeared = status
+
+    def appear(self, wait=0.5, duration=1.0):
         self.reparent_to(base.aspect2d)
-        self.appeared = True
 
         Sequence(
-            Wait(0.5),
-            self.posInterval(0.5, self.pos_appear),
-            Func(callback, *args, **kwargs)
+            Wait(wait),
+            self.posInterval(duration, self.pos_appear),
+            Func(self.change_status, True)
         ).start()
 
-    def disappear(self, callback, *args, **kwargs):
-        self.appeared = False
-
+    def disappear(self, wait=0.5, duration=1.0):
         Sequence(
-            Wait(0.5),
-            self.posInterval(0.5, self.pos_disappear),
+            Wait(wait),
+            self.posInterval(duration, self.pos_disappear),
             Func(self.detach_node),
-            Func(callback, *args, **kwargs)
+            Func(self.change_status, False)
+        ).start()
+
+
+class Caption(NodePath):
+
+    def __init__(self, text):
+        super().__init__(TextNode('caption'))
+        self.node().set_text(text)
+        self.node().set_font(base.loader.load_font('font/Candaral.ttf'))
+        self.node().set_text_scale(0.15)
+        self.node().set_text_color(LColor(0.5, 0.5, 0.5, 1))
+        self.reparent_to(base.aspect2d)
+
+        self.set_transparency(TransparencyAttrib.M_alpha)
+        self.set_pos(Point3(0, 0, 0.8))
+
+    def show_text(self, duration=1.0):
+        Sequence(
+            self.colorScaleInterval(duration, 1, 0, blendType='easeInOut'),
+            self.colorScaleInterval(duration, 0, 1, blendType='easeInOut'),
+            Func(self.remove_node),
         ).start()
