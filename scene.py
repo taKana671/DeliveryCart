@@ -31,12 +31,9 @@ class Terrain(NodePath):
     def __init__(self, heightmap_path, height=100):
         super().__init__(BulletRigidBodyNode('terrain'))
         self.height = height
-        self.set_pos(Point3(0, 0, 0))
         self.node().set_mass(0)
         self.set_collide_mask(BitMask32.bit(1))
         self.create_terrain(heightmap_path)
-
-        # self.set_transparency(TransparencyAttrib.M_alpha)
 
     def create_terrain(self, heightmap_path):
         img = PNMImage(Filename(heightmap_path))
@@ -80,13 +77,6 @@ class Terrain(NodePath):
 
 
 class WaterSurface(NodePath):
-    """Create water surface.
-        Arges:
-            w (int): width; dimension along the x-axis; cannot be negative
-            d (int): depth; dimension along the y-axis; cannot be negative
-            segs_w (int) the number of subdivisions in width
-            segs_d (int) the number of subdivisions in depth
-    """
 
     def __init__(self, w=256, d=256, segs_w=16, segs_d=16):
         super().__init__(BulletRigidBodyNode('water_surface'))
@@ -123,25 +113,14 @@ class WaterSurface(NodePath):
 
 
 class Road(NodePath):
-    """Create road.
-        Args:
-            segs_x (int): the number of road curves
-            size (int): equal to the width of water surface
-            height (int): the height of columns
-            col_radius (int): the radius of columns
-            road_width (int): the width of the road
-    """
 
     def __init__(self, segs_x=4, size=256, height=20, col_radius=4, road_width=6):
         super().__init__(BulletRigidBodyNode('cylinder'))
-        self.segs_x = segs_x
         self.size = size - col_radius * 2
         self.height = height
-        self.col_radius = col_radius
-        self.road_width = road_width
 
-        self.create_columns()
-        self.create_road(segs_x)
+        self.create_columns(col_radius)
+        self.create_road(segs_x, road_width)
         self.set_texture(base.loader.load_texture('textures/concrete_01.jpg'))
 
         self.node().set_mass(0)
@@ -149,18 +128,19 @@ class Road(NodePath):
 
     def get_start_location(self, direction=-1):
         x = self.size / 2 * direction
-        start_pos = Point3(x, 0, self.height)
+        z = self.get_z() + self.height
+        start_pos = Point3(x, 0, z)
         start_hpr = Vec3(180, 0, 0)
 
         return start_pos, start_hpr
 
-    def create_columns(self):
+    def create_columns(self, col_radius):
         model_maker = CylinderModel(
-            radius=self.col_radius, height=self.height, segs_a=10, segs_cap=4)
+            radius=col_radius, height=self.height, segs_a=10, segs_cap=4)
         x = self.size / 2
 
         for direction in [-1, 1]:
-            pos = Point3(x * direction, 0, 1)
+            pos = Point3(x * direction, 0, 0)
             model = model_maker.create()
             model.set_pos(pos)
             model.reparent_to(self)
@@ -169,10 +149,10 @@ class Road(NodePath):
             shape.add_geom(model.node().get_geom(0))
             self.node().add_shape(shape, TransformState.make_pos(pos))
 
-    def create_road(self, segs_x):
+    def create_road(self, segs_x, road_width):
         seg = self.size / segs_x
         radius = seg / 2 + 3
-        inner_radius = radius - self.road_width
+        inner_radius = radius - road_width
 
         model_maker = CylinderModel(
             radius=radius,
@@ -206,7 +186,7 @@ class Road(NodePath):
             model_maker.add(
                 geom_node, new_vdata_mem, new_vert_cnt, new_prim_mem, new_prim_cnt)
 
-        pos = Point3(-self.size / 2 + seg - seg / 2, 0, self.height - 0.001)
+        pos = Point3(-self.size / 2 + seg - seg / 2, 0, self.height - 1.001)
         model = model_maker.modeling(geom_node)
         model.set_pos(pos)
         model.set_tex_scale(TextureStage.get_default(), 5, 3)
@@ -221,61 +201,29 @@ class Road(NodePath):
 
 class Scene(NodePath):
 
-    def __init__(self, world):
+    def __init__(self):
         super().__init__(PandaNode('scene'))
-        self.world = world
         self.reparent_to(base.render)
-
         self.ambient_light = BasicAmbientLight()
         self.day_light = BasicDayLight()
-
         self.sky = Sky()
         self.sky.reparent_to(self)
 
-        self.terrain = Terrain('terrains/mysample3.png')
+        self.terrain = Terrain('terrains/heightmap.png')
         self.terrain.reparent_to(self)
-        self.world.attach(self.terrain.node())
+        self.terrain.set_pos(Point3(0, 0, 0))
+        base.world.attach(self.terrain.node())
 
         self.water_surface = WaterSurface()
         self.water_surface.reparent_to(self)
         self.water_surface.set_pos(0, 0, 0)
-        self.world.attach(self.water_surface.node())
+        base.world.attach(self.water_surface.node())
 
         self.road = Road()
+        self.road.set_pos(0, 0, 1)
         self.road.reparent_to(self)
-        self.world.attach(self.road.node())
+        base.world.attach(self.road.node())
 
-        # *****shape test*****************
-        # cart = BulletCart()
-        # cart.reparent_to(self)
-        # self.world.attach(cart.node())
-        # cart.set_pos(-100, -100, 80)
-        # cart.hprInterval(15, Vec3(360)).loop()
-
-        # test_np = NodePath(BulletRigidBodyNode('test'))
-        # test_np.reparent_to(self)
-        # model = CylinderModel(height=3, inner_radius=5, slice_angle_deg=0, invert=False).create()
-        # # model = Cube(width=5, depth=5, height=5, segs_d=0).create()
-        # model.reparent_to(test_np)
-
-        # pos = Point3(0, 0, 15)
-        # model.set_pos(pos)
-        # # scale = Vec3(2)
-        # # model.set_scale(scale)
-
-        # # shape = BulletConvexHullShape()
-        # # shape.add_geom(model.node().get_geom(0))
-        # # test_np.node().add_shape(shape, TransformState.make_pos(pos))
-
-        # mesh = BulletTriangleMesh()
-        # mesh.add_geom(model.node().get_geom(0))
-        # shape = BulletTriangleMeshShape(mesh, dynamic=False)
-        # test_np.node().add_shape(shape, TransformState.make_pos(pos))
-
-        # test_np.set_texture(base.loader.load_texture('textures/metalboard.jpg'))
-        # self.world.attach(test_np.node())
-        # # cylinder.set_p(180)
-        # # test_np.hprInterval(15, Vec3(360)).loop()
-        # base.camera.set_pos(-128, -128, 100)
-        # base.camera.look_at(test_np)
-        # ***********************************
+    def update(self, task_time, shadow_target):
+        self.water_surface.wave(task_time)
+        self.day_light.update(shadow_target)
