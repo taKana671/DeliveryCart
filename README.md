@@ -30,6 +30,7 @@ https://github.com/user-attachments/assets/f5929748-7a83-4cb5-a8e0-e4a1fcc0f62d
 ```
 
 # Controls:
+* Select level from 1 to 4. Level means the number of baggages on the cart.
 * Press [Esc] to quit.
 * Press [W] key to go foward. 
 * Press [Q] key to turn left. If stop holding down the key, the steering angle gradually goes to zero.
