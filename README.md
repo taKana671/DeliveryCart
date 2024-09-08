@@ -6,7 +6,7 @@ In this game, I had some new challenges. First, I made procedurally my own viecl
 
 I repeatedly read panda3D manual and sample codes, and went community site. I've visited this community site countless times. Thanks to this site, I've learned a lot of things about 3D game programming. Thank you, all of panda3d community members.　
 
-![demo](https://github.com/user-attachments/assets/f5929748-7a83-4cb5-a8e0-e4a1fcc0f62d)
+https://github.com/user-attachments/assets/f5929748-7a83-4cb5-a8e0-e4a1fcc0f62d
 
 
 # Requirements
