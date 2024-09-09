@@ -10,7 +10,7 @@ from panda3d.core import GeoMipTerrain
 from panda3d.core import Shader, TextureStage, TransformState
 from panda3d.core import TransparencyAttrib
 
-from shapes import CylinderModel, PlaneModel
+from shapes.src import Cylinder, Plane
 from lights import BasicAmbientLight, BasicDayLight
 
 
@@ -80,10 +80,10 @@ class WaterSurface(NodePath):
 
     def __init__(self, w=256, d=256, segs_w=16, segs_d=16):
         super().__init__(BulletRigidBodyNode('water_surface'))
-        model_maker = PlaneModel(w, d, segs_w, segs_d)
-        self.stride = model_maker.stride
+        plane = Plane(w, d, segs_w, segs_d)
+        self.stride = plane.stride
 
-        self.model = model_maker.create()
+        self.model = plane.create()
         self.model.set_transparency(TransparencyAttrib.MAlpha)
         self.model.set_texture(base.loader.loadTexture('textures/water.png'))
         self.model.set_pos(0, 0, 0)
@@ -135,7 +135,7 @@ class Road(NodePath):
         return start_pos, start_hpr
 
     def create_columns(self, col_radius):
-        model_maker = CylinderModel(
+        model_maker = Cylinder(
             radius=col_radius, height=self.height, segs_a=10, segs_cap=4)
         x = self.size / 2
 
@@ -154,7 +154,7 @@ class Road(NodePath):
         radius = seg / 2 + 3
         inner_radius = radius - road_width
 
-        model_maker = CylinderModel(
+        model_maker = Cylinder(
             radius=radius,
             inner_radius=inner_radius,
             slice_angle_deg=180,
