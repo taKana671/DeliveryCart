@@ -19,7 +19,7 @@ from gui import LevelSelector, Caption
 load_prc_file_data("", """
     textures-power-2 none
     gl-coordinate-system default
-    window-title Panda3D Practice Parking
+    window-title Panda3D Delivery Cart
     filled-wireframe-apply-shader true
     stm-max-views 8
     stm-max-chunk-count 2048""")
