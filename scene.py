@@ -179,12 +179,11 @@ class Road(NodePath):
             new_vdata_mem = memoryview(new_vdata.modify_array(0)).cast('B').cast('f')
 
             new_prim = new_geom.modify_primitive(0)
-            new_prim_cnt = new_prim.get_num_vertices()
+            # new_prim_cnt = new_prim.get_num_vertices()
             new_prim_array = new_prim.modify_vertices()
             new_prim_mem = memoryview(new_prim_array).cast('B').cast('H')
-
             model_maker.add(
-                geom_node, new_vdata_mem, new_vert_cnt, new_prim_mem, new_prim_cnt)
+                geom_node, new_vdata_mem, new_vert_cnt, new_prim_mem)
 
         pos = Point3(-self.size / 2 + seg - seg / 2, 0, self.height - 1.001)
         model = model_maker.modeling(geom_node)
