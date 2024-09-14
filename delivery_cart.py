@@ -106,7 +106,9 @@ class DeliveryCart(ShowBase):
 
         card = buffer.get_texture_card()
         card.reparent_to(self.render2d)
+        # Screens slowly changes, having afterimage (road).
         card.set_transparency(TransparencyAttrib.M_alpha)
+        # Screens quickly changes, having no afterimage.
         # card.set_transparency(TransparencyAttrib.M_multisample)
 
         Sequence(

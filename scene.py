@@ -162,8 +162,6 @@ class Road(NodePath):
         )
 
         for i in range(segs_x):
-            model_maker.invert = False if i % 2 == 0 else True
-
             if i == 0:
                 geom_node = model_maker.get_geom_node()
                 continue
