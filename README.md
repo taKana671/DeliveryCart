@@ -8,7 +8,7 @@ In this game, I had some new challenges like below.
 3. Connect hollow cylinders also by manipulating vertices to generate winding road, which was very difficult too. The result looks good for me.
 4. Fade from one camera perspective to another, which was the biggest hurdle. I think I did very well, but there is still room for improvement. 
 
-I repeatedly read panda3D manual and sample codes, and went to the panda3D community site to find a hint to solve a problem. I've visited this site countless times until now. Thanks to this community site, I've learned a lot of things about 3D game coding. 
+I repeatedly read panda3D manual and sample codes, and went to the panda3D community site to find a hint to solve problems. I've visited this site countless times until now. Thanks to this community site, I've learned a lot of things about 3D game coding. 
 
 https://github.com/user-attachments/assets/f5929748-7a83-4cb5-a8e0-e4a1fcc0f62d
 
