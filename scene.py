@@ -136,7 +136,7 @@ class Road(NodePath):
 
     def create_columns(self, col_radius):
         model_maker = Cylinder(
-            radius=col_radius, height=self.height, segs_a=10, segs_cap=4)
+            radius=col_radius, height=self.height, segs_a=10)
         x = self.size / 2
 
         for direction in [-1, 1]:
@@ -157,7 +157,7 @@ class Road(NodePath):
         model_maker = Cylinder(
             radius=radius,
             inner_radius=inner_radius,
-            slice_angle_deg=180,
+            ring_slice_deg=180,
             height=1,
         )
 
