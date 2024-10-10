@@ -3,7 +3,7 @@ from panda3d.bullet import BulletRigidBodyNode
 from panda3d.core import NodePath
 from panda3d.core import Vec3, BitMask32
 
-from shapes.src import Cube
+from shapes.src import Box
 
 
 class Baggage(NodePath):
@@ -36,7 +36,7 @@ class Baggages:
         self.cart = base.controller.cart
         self.cols = int(self.cart.size.x) * 2   # 2 * 2 = 4
         self.rows = int(self.cart.size.y) * 2   # 4 * 2 = 8
-        self.model_maker = Cube(
+        self.model_maker = Box(
             width=self.size.x, depth=self.size.y, height=self.size.z)
 
     def load(self, stack_layers=1):

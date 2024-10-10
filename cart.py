@@ -5,7 +5,7 @@ from panda3d.bullet import BulletRigidBodyNode, BulletVehicle
 from panda3d.core import NodePath
 from panda3d.core import Vec3, Point3, TransformState, BitMask32
 
-from shapes.src import Cube, Cylinder
+from shapes.src import Box, Cylinder
 
 
 class Status(Enum):
@@ -44,7 +44,7 @@ class BulletCart(NodePath):
         # self.steering_increment = 120.0
 
     def create_cart_body(self):
-        self.body = Cube(
+        self.body = Box(
             self.size.x, self.size.y, self.size.z, segs_w=2, segs_d=4).create()
         self.body.set_name('body')
         self.body.set_pos(Vec3(0, 0, 1))
