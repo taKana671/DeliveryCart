@@ -15,10 +15,7 @@ https://github.com/user-attachments/assets/f5929748-7a83-4cb5-a8e0-e4a1fcc0f62d
 
 # Requirements
 * Panda3D 1.10.14
-* numpy 1.23.5
-* opencv-contrib-python 4.8.0.74
-* opencv-python 4.8.0.74
-
+  
 # Environment
 * Python 3.11
 * Windows11
