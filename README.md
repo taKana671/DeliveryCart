@@ -14,10 +14,10 @@ https://github.com/user-attachments/assets/f5929748-7a83-4cb5-a8e0-e4a1fcc0f62d
 
 
 # Requirements
-* Panda3D 1.10.14
+* Panda3D 1.10.15
   
 # Environment
-* Python 3.11
+* Python 3.12
 * Windows11
 
 # Usage
