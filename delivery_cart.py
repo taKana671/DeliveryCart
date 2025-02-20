@@ -5,7 +5,7 @@ from panda3d.bullet import BulletWorld, BulletDebugNode
 from panda3d.core import Vec3, Point3
 from panda3d.core import NodePath
 from panda3d.core import load_prc_file_data
-from panda3d.core import TransparencyAttrib
+from panda3d.core import TransparencyAttrib, AntialiasAttrib
 from direct.interval.IntervalGlobal import Sequence, Func
 from direct.showbase.ShowBase import ShowBase
 from direct.showbase.ShowBaseGlobal import globalClock
@@ -22,7 +22,9 @@ load_prc_file_data("", """
     window-title Panda3D Delivery Cart
     filled-wireframe-apply-shader true
     stm-max-views 8
-    stm-max-chunk-count 2048""")
+    stm-max-chunk-count 2048
+    framebuffer-multisample 1
+    multisamples 2""")
 
 
 class Status(Enum):
@@ -41,6 +43,7 @@ class DeliveryCart(ShowBase):
     def __init__(self):
         super().__init__()
         self.disable_mouse()
+        self.render.set_antialias(AntialiasAttrib.MAuto)
 
         self.world = BulletWorld()
         self.world.set_gravity(Vec3(0, 0, -9.81))
