@@ -167,21 +167,9 @@ class Road(NodePath):
                 continue
 
             new_geom_node = model_maker.get_geom_node()
-            new_geom = new_geom_node.modify_geom(0)
-
-            new_vdata = new_geom.modify_vertex_data()
             rotation_deg = 0 if i % 2 == 0 else 180
             bottom_center = Point3(seg * i, 0, 0)
-            model_maker.tranform_vertices(new_vdata, Vec3(0, 0, 1), bottom_center, rotation_deg)
-            new_vert_cnt = new_vdata.get_num_rows()
-            new_vdata_mem = memoryview(new_vdata.modify_array(0)).cast('B').cast('f')
-
-            new_prim = new_geom.modify_primitive(0)
-            # new_prim_cnt = new_prim.get_num_vertices()
-            new_prim_array = new_prim.modify_vertices()
-            new_prim_mem = memoryview(new_prim_array).cast('B').cast('H')
-            model_maker.add(
-                geom_node, new_vdata_mem, new_vert_cnt, new_prim_mem)
+            model_maker.merge_geom(geom_node, new_geom_node, Vec3(0, 0, 1), bottom_center, rotation_deg)
 
         pos = Point3(-self.size / 2 + seg - seg / 2, 0, self.height - 1.001)
         model = model_maker.modeling(geom_node)
