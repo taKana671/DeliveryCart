@@ -21,9 +21,17 @@ https://github.com/user-attachments/assets/2e098b50-9540-4996-8477-eb0abfbf6b3a
 * Windows11
 
 # Usage
+
+* Clone this repository with submodule.
+
+```
+git clone --recursive https://github.com/taKana671/DeliveryCart.git
+```
+
 * Execute a command below on your command line.
 ```
->>>python delivery_cart.py.py
+>cd DeliveryCart
+>python delivery_cart.py.py
 ```
 
 # Controls:

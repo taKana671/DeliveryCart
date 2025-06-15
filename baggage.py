@@ -3,7 +3,7 @@ from panda3d.bullet import BulletRigidBodyNode
 from panda3d.core import NodePath
 from panda3d.core import Vec3, BitMask32
 
-from shapes.src import Box
+from shapes import Box
 
 
 class Baggage(NodePath):

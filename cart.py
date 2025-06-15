@@ -5,7 +5,7 @@ from panda3d.bullet import BulletRigidBodyNode, BulletVehicle
 from panda3d.core import NodePath
 from panda3d.core import Vec3, Point3, TransformState, BitMask32
 
-from shapes.src import Box, Cylinder
+from shapes import Box, Cylinder
 
 
 class Status(Enum):

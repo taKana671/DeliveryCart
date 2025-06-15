@@ -10,7 +10,7 @@ from panda3d.core import GeoMipTerrain
 from panda3d.core import Shader, TextureStage, TransformState
 from panda3d.core import TransparencyAttrib
 
-from shapes.src import Cylinder, Plane
+from shapes import Cylinder, Plane
 from lights import BasicAmbientLight, BasicDayLight
 
 
